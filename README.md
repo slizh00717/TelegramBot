@@ -1,0 +1,286 @@
+# Barber Bot - Telegram Bot for Barbershop Appointments
+
+Telegram бот для записи клиентов в барбершоп с функционалом управления расписанием, автоматическими напоминаниями и уведомлениями.
+
+## Функционал
+
+### Для барбера
+- 📅 **Планирование сеансов** - создание расписания с автогенерацией временных слотов
+- 📢 **Публикация расписания** - уведомление всех подписчиков о доступных местах
+- 📊 **Управление записями** - просмотр и отмена записей с указанием причины
+- 📍 **Уведомления о новых записях** - мгновенное сообщение когда клиент записывается
+- 🔔 **Уведомления об освобождении мест** - сообщение когда место освобождается
+- 👤 **Профиль** - просмотр и редактирование имени и номера телефона
+- 💰 **Управление услугами и ценами** - установка цен на услуги (стрижка, стрижка бороды, комбо)
+- 👥 **Список клиентов** - просмотр всех клиентов с информацией о них
+- 🚫 **Чёрный список** - блокировка клиентов от получения уведомлений
+
+### Для клиента
+- 📅 **Просмотр расписания** - доступные даты и временные слоты
+- ✂️ **Запись к барберу** - выбор слота и подтверждение
+- 📝 **Мои записи** - просмотр активных записей и истории
+- ❌ **Отмена записи** - возможность отменить запись
+- ⏰ **Автоматические напоминания** - уведомление в 09:00 в день приёма
+- 👤 **Профиль** - просмотр и редактирование имени и номера телефона
+- 💰 **Просмотр прайс-листа** - просмотр цен на все услуги барбера
+- 🗑️ **Удаление аккаунта** - возможность удалить профиль (только для клиентов)
+- 🚀 **Кнопка Start** - удобный старт для новых пользователей при первом входе
+
+## Технический стек
+
+- **Python 3.10+**
+- **aiogram 3.x** - Telegram Bot API фреймворк
+- **MongoDB** - база данных
+- **Pydantic** - валидация данных
+- **APScheduler** - планирование фоновых задач (напоминания)
+- **python-dotenv** - управление конфигурацией
+
+## Установка
+
+### Требования
+- Python 3.10+
+- MongoDB (локально или в облаке)
+- Telegram Bot Token (получить от @BotFather)
+
+### Важно
+Проект **не использует** .env файлы. Все параметры передаются через **переменные окружения**:
+- Локально: `export TELEGRAM_BOT_TOKEN="..."`
+- Docker: `environment` в docker-compose.yml или флаг `-e` при запуске
+
+### Шаги установки
+
+1. **Клонируйте репозиторий**
+```bash
+git clone <repo-url>
+cd TelegramBot
+```
+
+2. **Создайте виртуальное окружение**
+```bash
+python -m venv venv
+source venv/bin/activate  # на Windows: venv\Scripts\activate
+```
+
+3. **Установите зависимости**
+```bash
+pip install -r requirements.txt
+```
+
+4. **Установите переменные окружения**
+```bash
+export TELEGRAM_BOT_TOKEN="your_bot_token_here"
+export MONGODB_URI="mongodb://localhost:27017"
+export DATABASE_NAME="barber_bot"
+export TIMEZONE="Europe/Moscow"
+export LOG_LEVEL="INFO"
+```
+
+5. **Запустите бот**
+```bash
+python -m src.main
+```
+
+## Структура проекта
+
+```
+src/
+├── config/              # Конфигурация
+├── database/            # MongoDB подключение и миграции
+├── models/              # Pydantic модели
+├── repositories/        # Data access layer (CRUD)
+├── services/            # Бизнес логика
+├── handlers/            # Telegram обработчики команд
+├── keyboards/           # UI элементы (кнопки)
+├── tasks/               # Фоновые задачи (APScheduler)
+├── enums/               # Перечисления (роли, статусы)
+├── utils/               # Вспомогательные функции
+└── main.py              # Точка входа
+```
+
+## Структура БД
+
+### Users Collection
+```json
+{
+  "_id": ObjectId,
+  "telegram_id": int,
+  "full_name": string,
+  "phone": string,
+  "username": string,
+  "role": "barber|client",
+  "is_active": boolean,
+  "is_subscribed": boolean,
+  "is_blocked": boolean,
+  "visit_count": int,
+  "services": {
+    "haircut": float,
+    "beard_trim": float,
+    "haircut_and_beard": float,
+    "updated_at": datetime
+  },
+  "services_history": [
+    {
+      "haircut": float,
+      "beard_trim": float,
+      "haircut_and_beard": float,
+      "updated_at": datetime
+    }
+  ],
+  "created_at": datetime,
+  "updated_at": datetime
+}
+```
+
+### Barber Schedules Collection
+```json
+{
+  "_id": ObjectId,
+  "barber_id": ObjectId,
+  "date": date,
+  "start_time": time,
+  "end_time": time,
+  "session_duration_minutes": int,
+  "is_published": boolean,
+  "created_at": datetime,
+  "updated_at": datetime
+}
+```
+
+### Time Slots Collection
+```json
+{
+  "_id": ObjectId,
+  "schedule_id": ObjectId,
+  "barber_id": ObjectId,
+  "start_time": datetime,
+  "end_time": datetime,
+  "status": "available|booked|locked",
+  "created_at": datetime,
+  "updated_at": datetime
+}
+```
+
+### Appointments Collection
+```json
+{
+  "_id": ObjectId,
+  "time_slot_id": ObjectId,
+  "barber_id": ObjectId,
+  "client_id": ObjectId,
+  "client_phone": string,
+  "client_name": string,
+  "status": "booked|completed|cancelled",
+  "cancelled_by": "CLIENT|BARBER|null",
+  "cancelled_at": datetime|null,
+  "cancel_reason": string|null,
+  "appointment_date": date,
+  "appointment_time": time,
+  "reminder_sent": boolean,
+  "reminder_sent_at": datetime|null,
+  "created_at": datetime,
+  "updated_at": datetime
+}
+```
+
+## Разработка
+
+### Запуск тестов
+```bash
+pytest tests/
+```
+
+### Формат кода
+Код должен соответствовать PEP 8. Используйте:
+```bash
+black src/
+flake8 src/
+```
+
+## Фазы разработки
+
+### ✅ Фаза 1: Инфраструктура (Завершено)
+- [x] Структура проекта
+- [x] Конфиг и настройки
+- [x] MongoDB подключение
+- [x] Логирование
+
+### ✅ Фаза 2: Модели и репозитории (Завершено)
+- [x] Pydantic модели
+- [x] BaseRepository
+- [x] UserRepository
+- [x] ScheduleRepository
+- [x] TimeSlotRepository
+- [x] AppointmentRepository
+- [x] NotificationRepository
+
+### ✅ Фаза 3: Сервисы (Завершено)
+- [x] UserService
+- [x] ScheduleService
+- [x] AppointmentService
+- [x] NotificationService
+- [x] ReminderService
+
+### ✅ Фаза 4: Обработчики Telegram (Завершено)
+- [x] UserHandlers (старт, регистрация)
+- [x] BarberHandlers (управление расписанием)
+- [x] ClientHandlers (запись и отмена)
+- [x] Callback handlers (inline кнопки)
+
+### ✅ Фаза 5: Фоновые задачи (Завершено)
+- [x] APScheduler интеграция
+- [x] Отправка напоминаний в 09:00
+- [x] Структура для очистки старых записей
+
+### ✅ Фаза 6: Профили пользователей (Завершено)
+- [x] Профиль для клиентов - просмотр информации
+- [x] Профиль для барберов - просмотр информации
+- [x] Редактирование имени и номера телефона (для обоих)
+- [x] Удаление аккаунта (только для клиентов)
+- [x] Кнопка "Start" для новых пользователей
+
+### ✅ Фаза 7: Управление услугами и прайс-лист (Завершено)
+- [x] Модель BarberService для хранения услуг
+- [x] CRUD операции для услуг
+- [x] Интерфейс редактирования ценовых услуг для барберов
+- [x] Просмотр прайс-листа для клиентов
+- [x] Сохранение даты последнего обновления цен
+
+### ✅ Фаза 8: Управление клиентами (Завершено)
+- [x] Просмотр списка всех клиентов (для барберов)
+- [x] Просмотр деталей клиента (записи, контакты, статистика)
+- [x] Чёрный список (блокировка клиентов от уведомлений)
+- [x] Разблокировка клиентов
+- [x] Интеграция блокировки с системой уведомлений
+
+### 📋 Фаза 9: Тестирование и деплой (Планируется)
+- [ ] Unit тесты
+- [ ] Integration тесты
+- [ ] Docker контейнеризация
+- [ ] Деплой на VPS
+
+## Пользовательские команды
+
+- `/start` - регистрация
+- `/menu` - главное меню
+- `/help` - справка
+
+## Архитектура
+
+Проект использует чистую архитектуру с разделением ответственности:
+
+- **Handlers** - обработка Telegram команд (делегирует на бизнес-логику)
+- **Services** - бизнес-логика (без зависимости от Telegram)
+- **Repositories** - доступ к БД (абстракция от MongoDB)
+- **Models** - валидация данных (Pydantic)
+
+## Лицензия
+
+MIT
+
+## Автор
+
+Anatoly
+
+## Контакт
+
+Email: slizh00717@gmail.com

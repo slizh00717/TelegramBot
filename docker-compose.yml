@@ -1,0 +1,40 @@
+services:
+  mongodb:
+    image: mongo:8.0
+    container_name: barber_bot_mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: Admin2025
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - barber_network
+
+  bot:
+    build: .
+    container_name: barber_bot
+    depends_on:
+      - mongodb
+    environment:
+      # Обязательные
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?TELEGRAM_BOT_TOKEN not set}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:?TELEGRAM_BOT_USERNAME not set}
+      BARBER_CHAT_ID: ${BARBER_CHAT_ID:?BARBER_CHAT_ID not set}
+      # MongoDB подключение с учетными данными
+      MONGODB_URI: mongodb://admin:Admin2025@mongodb:27017
+      # Опциональные с значениями по умолчанию
+      DATABASE_NAME: ${DATABASE_NAME:-barber_bot}
+      TIMEZONE: ${TIMEZONE:-Europe/Minsk}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    networks:
+      - barber_network
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+
+networks:
+  barber_network:
+    driver: bridge
