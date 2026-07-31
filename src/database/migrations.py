@@ -13,9 +13,10 @@ async def create_indexes(db: AsyncIOMotorDatabase) -> None:
     """
 
     # Users collection indexes
-    await db.users.create_index("telegram_id", unique=True, sparse=True)
-    await db.users.create_index("phone", sparse=True)
-    await db.users.create_index("referral_code", unique=True, sparse=True)
+    # Removed sparse=True to avoid conflicts with existing indexes
+    await db.users.create_index("telegram_id", unique=True)
+    await db.users.create_index("phone")
+    await db.users.create_index("referral_code", unique=True)
     await db.users.create_index([("role", ASCENDING), ("is_subscribed", ASCENDING)])
     await db.users.create_index([("is_subscribed", ASCENDING), ("is_blocked", ASCENDING)])
     await db.users.create_index([("is_active", ASCENDING), ("created_at", DESCENDING)])
@@ -58,7 +59,8 @@ async def create_indexes(db: AsyncIOMotorDatabase) -> None:
     logger.info("✓ Created indexes for notifications collection (3 indexes)")
 
     # Reminder jobs collection indexes
-    await db.reminder_jobs.create_index("appointment_id", unique=True, sparse=True)
+    # Note: Not using sparse=True to match existing index (already exists without sparse)
+    await db.reminder_jobs.create_index("appointment_id", unique=True)
     await db.reminder_jobs.create_index([("status", ASCENDING), ("scheduled_time", ASCENDING)])
     logger.info("✓ Created indexes for reminder_jobs collection (2 indexes)")
 
