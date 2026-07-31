@@ -18,6 +18,7 @@ class ScheduleService:
         start_time: time,
         end_time: time,
         haircut_duration_minutes: int = 60,
+        beard_trim_duration_minutes: int = 30,
         haircut_and_beard_duration_minutes: int = 90,
     ) -> Dict[str, Any]:
         """
@@ -29,6 +30,7 @@ class ScheduleService:
             start_time: Start time of work
             end_time: End time of work
             haircut_duration_minutes: Duration for haircut service
+            beard_trim_duration_minutes: Duration for beard trim service
             haircut_and_beard_duration_minutes: Duration for haircut+beard service
 
         Returns:
@@ -40,6 +42,7 @@ class ScheduleService:
             start_time,
             end_time,
             haircut_duration_minutes,
+            beard_trim_duration_minutes,
             haircut_and_beard_duration_minutes,
         )
         logger.info(
@@ -98,18 +101,25 @@ class ScheduleService:
         self, barber_id: str, date_obj: date, service_type: str = "haircut"
     ) -> List[Dict[str, Any]]:
         """Get available time slots for a specific service type and date"""
+        from src.repositories import AppointmentRepository
+
         # Find schedule for barber on this date
         schedule = await self.schedule_repo.find_by_barber_and_date(barber_id, date_obj)
         if not schedule:
             return []
 
-        # Get service duration
-        duration_key = (
-            "haircut_and_beard_duration_minutes"
-            if service_type == "haircut_and_beard"
-            else "haircut_duration_minutes"
-        )
-        duration = schedule.get(duration_key, 60)
+        # Get service duration based on service type
+        if service_type == "haircut_and_beard":
+            duration_key = "haircut_and_beard_duration_minutes"
+            default_duration = 90
+        elif service_type == "beard_trim":
+            duration_key = "beard_trim_duration_minutes"
+            default_duration = 30
+        else:  # haircut
+            duration_key = "haircut_duration_minutes"
+            default_duration = 60
+
+        duration = schedule.get(duration_key, default_duration)
 
         # Generate available slots
         slots = await self._generate_available_slots(
@@ -117,7 +127,64 @@ class ScheduleService:
             duration,
             service_type,
         )
-        return slots
+
+        # Filter out slots that overlap with booked appointments
+        appointment_repo = AppointmentRepository()
+        booked_appointments = await appointment_repo.find_by_barber_and_date(
+            barber_id, date_obj
+        )
+
+        # Get service durations for calculating appointment end times
+        def get_duration_for_service(svc_type: str) -> int:
+            """Get duration in minutes for a service type"""
+            if svc_type == "haircut_and_beard":
+                return schedule.get("haircut_and_beard_duration_minutes", 90)
+            elif svc_type == "beard_trim":
+                return schedule.get("beard_trim_duration_minutes", 30)
+            else:  # haircut
+                return schedule.get("haircut_duration_minutes", 60)
+
+        # Create a list of booked time ranges with end times
+        tz = get_timezone()
+        booked_ranges = []
+        for appt in booked_appointments:
+            # Only consider BOOKED appointments, skip cancelled ones
+            if appt.get("status") != "booked":
+                continue
+
+            appt_time_str = appt["appointment_time"]
+            # Parse appointment time (format: "HH:MM")
+            appt_hour, appt_min = map(int, appt_time_str.split(":"))
+            appt_start = datetime.combine(
+                date_obj, time(hour=appt_hour, minute=appt_min)
+            )
+            appt_start = tz.localize(appt_start)  # Make timezone-aware
+
+            # Get service type and calculate duration
+            svc_type = appt.get("service_type", "haircut")
+            appt_duration = get_duration_for_service(svc_type)
+            appt_end = appt_start + timedelta(minutes=appt_duration)
+
+            booked_ranges.append((appt_start, appt_end))
+
+        # Filter slots - keep only those that don't overlap with booked appointments
+        available_slots = []
+        for slot in slots:
+            slot_start = slot["start_time"]
+            slot_end = slot["end_time"]
+
+            # Check if this slot overlaps with any booked appointment
+            is_available = True
+            for booked_start, booked_end in booked_ranges:
+                # Slots overlap if: slot_start < booked_end AND slot_end > booked_start
+                if slot_start < booked_end and slot_end > booked_start:
+                    is_available = False
+                    break
+
+            if is_available:
+                available_slots.append(slot)
+
+        return available_slots
 
     async def _generate_available_slots(
         self, schedule: Dict[str, Any], duration_minutes: int, service_type: str
@@ -149,6 +216,9 @@ class ScheduleService:
         end_datetime = tz.localize(end_datetime)
 
         slots = []
+        # Generate slots with 30-minute intervals to handle service durations properly
+        # (e.g., a 90-minute appointment ending at 11:30 allows next 60-min slot at 11:30)
+        interval_minutes = 30
         while current_time < end_datetime:
             slot_end = current_time + timedelta(minutes=duration_minutes)
 
@@ -164,7 +234,7 @@ class ScheduleService:
                 "status": "available",
             }
             slots.append(slot)
-            current_time = slot_end
+            current_time = current_time + timedelta(minutes=interval_minutes)
 
         return slots
 

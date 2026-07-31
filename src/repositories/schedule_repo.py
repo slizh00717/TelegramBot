@@ -15,6 +15,7 @@ class ScheduleRepository(BaseRepository):
         start_time,
         end_time,
         haircut_duration_minutes: int = 60,
+        beard_trim_duration_minutes: int = 30,
         haircut_and_beard_duration_minutes: int = 90,
     ) -> str:
         """Create a new schedule"""
@@ -39,6 +40,7 @@ class ScheduleRepository(BaseRepository):
             "start_time": start_time_str,
             "end_time": end_time_str,
             "haircut_duration_minutes": haircut_duration_minutes,
+            "beard_trim_duration_minutes": beard_trim_duration_minutes,
             "haircut_and_beard_duration_minutes": haircut_and_beard_duration_minutes,
             "is_published": False,
             "created_at": datetime.utcnow(),

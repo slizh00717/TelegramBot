@@ -26,7 +26,12 @@ from src.utils import (
     safe_edit_text,
 )
 from src.enums import UserRole, NotificationType
-from src.repositories import ScheduleRepository, TimeSlotRepository, UserRepository
+from src.repositories import (
+    ScheduleRepository,
+    TimeSlotRepository,
+    UserRepository,
+    AppointmentRepository,
+)
 
 router = Router()
 schedule_service = ScheduleService()
@@ -39,6 +44,7 @@ class ScheduleStates(StatesGroup):
     choosing_start_time = State()
     choosing_end_time = State()
     choosing_haircut_duration = State()
+    choosing_beard_trim_duration = State()
     choosing_haircut_and_beard_duration = State()
 
 
@@ -338,9 +344,54 @@ async def process_haircut_duration_callback(callback: CallbackQuery, state: FSMC
 
     await state.update_data(haircut_duration_minutes=duration)
 
+    # Show duration selection for beard trim
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+    durations = [15, 20, 25, 30, 45, 60]
+
+    for dur in durations:
+        keyboard.inline_keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=f"⏱️ {dur} мин",
+                    callback_data=f"schedule_beard_trim_duration_{dur}",
+                )
+            ]
+        )
+
+    keyboard.inline_keyboard.append(
+        [
+            InlineKeyboardButton(
+                text="⬅️ Назад", callback_data="barber_create_schedule"
+            ),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
+        ]
+    )
+
+    await safe_edit_text(
+        callback.message,
+        f"📅 Дата: <b>{data['date'].strftime('%d.%m.%Y')}</b>\n"
+        f"🕐 Время: <b>{data['start_time'].strftime('%H:%M')} - {data['end_time'].strftime('%H:%M')}</b>\n"
+        f"✂️ Стрижка: <b>{duration} мин</b>\n\n"
+        "💈 <b>Выбери длительность стрижки бороды</b>",
+        reply_markup=keyboard,
+    )
+    await state.set_state(ScheduleStates.choosing_beard_trim_duration)
+
+
+@router.callback_query(F.data.startswith("schedule_beard_trim_duration_"))
+@require_role(UserRole.BARBER)
+async def process_beard_trim_duration_callback(
+    callback: CallbackQuery, state: FSMContext
+):
+    """Process beard trim duration selection"""
+    duration = int(callback.data.split("_")[-1])
+    data = await state.get_data()
+
+    await state.update_data(beard_trim_duration_minutes=duration)
+
     # Show duration selection for haircut+beard
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
-    durations = [30, 45, 60, 75, 90, 120]
+    durations = [45, 60, 75, 90, 105, 120]
 
     for dur in durations:
         keyboard.inline_keyboard.append(
@@ -361,11 +412,14 @@ async def process_haircut_duration_callback(callback: CallbackQuery, state: FSMC
         ]
     )
 
+    haircut_duration = data.get("haircut_duration_minutes", 60)
+
     await safe_edit_text(
         callback.message,
         f"📅 Дата: <b>{data['date'].strftime('%d.%m.%Y')}</b>\n"
         f"🕐 Время: <b>{data['start_time'].strftime('%H:%M')} - {data['end_time'].strftime('%H:%M')}</b>\n"
-        f"✂️ Стрижка: <b>{duration} мин</b>\n\n"
+        f"✂️ Стрижка: <b>{haircut_duration} мин</b>\n"
+        f"💈 Стрижка бороды: <b>{duration} мин</b>\n\n"
         "✂️💈 <b>Выбери длительность стрижки + борода</b>",
         reply_markup=keyboard,
     )
@@ -382,8 +436,9 @@ async def process_haircut_and_beard_duration_callback(
     data = await state.get_data()
 
     haircut_duration = data.get("haircut_duration_minutes", 60)
+    beard_trim_duration = data.get("beard_trim_duration_minutes", 30)
 
-    # Create schedule with both durations
+    # Create schedule with all three durations
     user = await user_service.get_user(callback.from_user.id)
     schedule = await schedule_service.create_schedule(
         barber_id=str(user["_id"]),
@@ -391,6 +446,7 @@ async def process_haircut_and_beard_duration_callback(
         start_time=data["start_time"],
         end_time=data["end_time"],
         haircut_duration_minutes=haircut_duration,
+        beard_trim_duration_minutes=beard_trim_duration,
         haircut_and_beard_duration_minutes=duration,
     )
 
@@ -411,6 +467,7 @@ async def process_haircut_and_beard_duration_callback(
         f"📅 Дата: <b>{data['date'].strftime('%d.%m.%Y')}</b>\n"
         f"🕐 Время: <b>{data['start_time'].strftime('%H:%M')} - {data['end_time'].strftime('%H:%M')}</b>\n"
         f"✂️ Стрижка: <b>{haircut_duration} мин</b>\n"
+        f"💈 Стрижка бороды: <b>{beard_trim_duration} мин</b>\n"
         f"✂️💈 Стрижка + Борода: <b>{duration} мин</b>\n\n"
         "Опубликуй расписание, чтобы клиенты могли записаться.",
         reply_markup=keyboard,
@@ -626,7 +683,7 @@ async def barber_add_appointment_handler(callback: CallbackQuery):
 @router.callback_query(F.data.startswith("barber_select_client_"))
 @require_role(UserRole.BARBER)
 async def barber_select_client_handler(callback: CallbackQuery, state: FSMContext):
-    """Select client and show available dates"""
+    """Select client and show service selection"""
     client_id = callback.data.split("_")[-1]
 
     # Get client info
@@ -642,7 +699,52 @@ async def barber_select_client_handler(callback: CallbackQuery, state: FSMContex
         selected_client_id=client_id, selected_client_name=client.get("full_name")
     )
 
-    # Get available schedules (dates with slots)
+    # Show service selection
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✂️ Стрижка",
+                    callback_data="barber_select_service_haircut",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="💈 Стрижка бороды",
+                    callback_data="barber_select_service_beard_trim",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="✂️💈 Стрижка + Борода",
+                    callback_data="barber_select_service_haircut_and_beard",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="⬅️ Назад", callback_data="barber_add_appointment"
+                ),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
+            ],
+        ]
+    )
+
+    await safe_edit_text(
+        callback.message,
+        f"👤 <b>Клиент: {client['full_name']}</b>\n\n" "🪒 <b>Выбери услугу</b>",
+        reply_markup=keyboard,
+    )
+
+
+@router.callback_query(F.data.startswith("barber_select_service_"))
+@require_role(UserRole.BARBER)
+async def barber_select_service_handler(callback: CallbackQuery, state: FSMContext):
+    """Select service type and show available dates"""
+    service_type = callback.data.replace("barber_select_service_", "")
+
+    await state.update_data(barber_booking_service=service_type)
+
+    # Get available schedules (dates)
     schedules = await ScheduleRepository().find_many({"is_published": True})
 
     if not schedules:
@@ -653,8 +755,24 @@ async def barber_select_client_handler(callback: CallbackQuery, state: FSMContex
         )
         return
 
+    # Get client name from state
+    data = await state.get_data()
+    client_name = data.get("selected_client_name", "Клиент")
+
+    # Service names mapping
+    service_names = {
+        "haircut": "Стрижка",
+        "beard_trim": "Стрижка бороды",
+        "haircut_and_beard": "Стрижка + Борода",
+    }
+    service_name = service_names.get(service_type, "Услуга")
+
     # Show available dates
-    text = f"📅 <b>Выбери дату для {client['full_name']}</b>\n\n"
+    text = (
+        f"👤 <b>Клиент: {client_name}</b>\n"
+        f"✂️ <b>Услуга: {service_name}</b>\n\n"
+        "📅 <b>Выбери дату</b>\n\n"
+    )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
 
     dates = set()
@@ -717,16 +835,106 @@ async def barber_select_date_handler(callback: CallbackQuery, state: FSMContext)
         )
         return
 
-    # Get available slots for the date
-    time_slot_repo = TimeSlotRepository()
-    date_start = datetime.combine(date_obj, datetime.min.time())
-    date_end = datetime.combine(date_obj, datetime.max.time())
+    # Get service type from state (default to haircut)
+    data = await state.get_data()
+    service_type = data.get("barber_booking_service", "haircut")
 
-    slots = await time_slot_repo.find_many(
-        {"status": "available", "start_time": {"$gte": date_start, "$lte": date_end}}
+    # Get barber info and their schedule
+    user = await user_service.get_user(callback.from_user.id)
+    barber_id = str(user["_id"])
+
+    # Get all schedules for this barber on this date
+    schedule_repo = ScheduleRepository()
+    schedule = await schedule_repo.find_by_barber_and_date(barber_id, date_obj)
+
+    if not schedule:
+        # No schedule for this barber on this date, try to get any published schedule
+        all_schedules = await schedule_repo.find_many({"is_published": True})
+        schedule = None
+        for s in all_schedules:
+            s_date = s["date"].date() if hasattr(s["date"], "date") else s["date"]
+            if s_date == date_obj and str(s["barber_id"]) == barber_id:
+                schedule = s
+                break
+
+    if not schedule:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="⬅️ Назад", callback_data="barber_add_appointment"
+                    )
+                ],
+                [InlineKeyboardButton(text="🏠 Меню", callback_data="menu")],
+            ]
+        )
+        await callback.message.edit_text(
+            f"📅 <b>Дата: {date_obj.strftime('%d.%m.%Y')}</b>\n\n"
+            "На эту дату нет расписания"
+        )
+        return
+
+    # Generate slots for the selected service
+    schedule_service_inst = ScheduleService()
+    slots = await schedule_service_inst.get_available_slots_for_service(
+        str(schedule["barber_id"]), date_obj, service_type
     )
 
-    if not slots:
+    # Filter out slots that are already booked
+    appointment_repo = AppointmentRepository()
+    booked_appointments = await appointment_repo.find_by_barber_and_date(
+        str(schedule["barber_id"]), date_obj
+    )
+
+    # Get service durations for calculating appointment end times
+    def get_duration_for_service(service_type: str) -> int:
+        """Get duration in minutes for a service type"""
+        if service_type == "haircut_and_beard":
+            return schedule.get("haircut_and_beard_duration_minutes", 90)
+        elif service_type == "beard_trim":
+            return schedule.get("beard_trim_duration_minutes", 30)
+        else:  # haircut
+            return schedule.get("haircut_duration_minutes", 60)
+
+    # Create a list of booked time ranges with end times
+    tz = get_timezone()
+    booked_ranges = []
+    for appt in booked_appointments:
+        # Only consider BOOKED appointments, skip cancelled ones
+        if appt.get("status") != "booked":
+            continue
+
+        appt_time_str = appt["appointment_time"]
+        # Parse appointment time (format: "HH:MM")
+        appt_hour, appt_min = map(int, appt_time_str.split(":"))
+        appt_start = datetime.combine(date_obj, time(hour=appt_hour, minute=appt_min))
+        appt_start = tz.localize(appt_start)  # Make timezone-aware
+
+        # Get service type and calculate duration
+        service_type = appt.get("service_type", "haircut")
+        duration = get_duration_for_service(service_type)
+        appt_end = appt_start + timedelta(minutes=duration)
+
+        booked_ranges.append((appt_start, appt_end))
+
+    # Filter slots - keep only those that don't overlap with booked appointments
+    available_slots = []
+    for slot in slots:
+        slot_start = slot["start_time"]
+        slot_end = slot["end_time"]
+
+        # Check if this slot overlaps with any booked appointment
+        is_available = True
+        for booked_start, booked_end in booked_ranges:
+            # Slots overlap if: slot_start < booked_end AND slot_end > booked_start
+            if slot_start < booked_end and slot_end > booked_start:
+                is_available = False
+                break
+
+        if is_available:
+            available_slots.append(slot)
+
+    if not available_slots:
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -742,6 +950,8 @@ async def barber_select_date_handler(callback: CallbackQuery, state: FSMContext)
             "На эту дату нет свободных мест"
         )
         return
+
+    slots = available_slots
 
     # Show available slots
     text = (
@@ -767,7 +977,8 @@ async def barber_select_date_handler(callback: CallbackQuery, state: FSMContext)
             continue
 
         added_times.add(time_str)
-        slot_mapping[button_idx] = str(slot["_id"])
+        # Store the entire slot object for later use
+        slot_mapping[button_idx] = slot
         keyboard.inline_keyboard.append(
             [
                 InlineKeyboardButton(
@@ -816,7 +1027,7 @@ async def barber_book_slot_handler(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Слот не найден", show_alert=True)
         return
 
-    slot_id = slot_mapping[slot_idx]
+    slot = slot_mapping[slot_idx]
 
     # Get client info
     repo = UserRepository()
@@ -826,39 +1037,75 @@ async def barber_book_slot_handler(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Клиент не найден", show_alert=True)
         return
 
-    # Save slot_id to state for later use
-    await state.update_data(selected_slot_id=slot_id)
+    # Get service type from state (already selected)
+    service_type = data.get("barber_booking_service", "haircut")
 
-    # Show service selection
+    # Book appointment directly with the selected service
+    appointment = await appointment_service.book_appointment(
+        slot, client_id, service_type=service_type
+    )
+
+    if not appointment:
+        await callback.message.edit_text(
+            "❌ Ошибка при бронировании. Место может быть уже занято. "
+            "Попробуй другое время."
+        )
+        return
+
+    # Format time and date
+    time_str = appointment["appointment_time"]
+    date_str = (
+        appointment["appointment_date"].strftime("%d.%m.%Y")
+        if hasattr(appointment["appointment_date"], "strftime")
+        else str(appointment["appointment_date"])
+    )
+    service_name = "Стрижка" if service_type == "haircut" else "Стрижка + Борода"
+
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text="✂️ Стрижка",
-                    callback_data="barber_book_service_haircut",
+                    text="📋 Записи", callback_data="barber_view_appointments"
                 )
             ],
-            [
-                InlineKeyboardButton(
-                    text="✂️💈 Стрижка + Борода",
-                    callback_data="barber_book_service_haircut_and_beard",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text="⬅️ Назад", callback_data="barber_add_appointment"
-                ),
-                InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
-            ],
+            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu")],
         ]
     )
 
-    await safe_edit_text(
-        callback.message,
-        f"👤 <b>Клиент: {client['full_name']}</b>\n\n" "🪒 <b>Выбери услугу</b>",
+    await callback.message.edit_text(
+        f"✅ <b>Запись создана</b>\n\n"
+        f"✂️ Услуга: {service_name}\n"
+        f"👤 Клиент: {client['full_name']}\n"
+        f"📅 Дата: {date_str}\n"
+        f"🕐 Время: {time_str}",
         reply_markup=keyboard,
     )
-    await state.set_state(BarberBookingStates.choosing_service)
+
+    # Send notification to client
+    from src.services import NotificationService
+
+    barber = await user_service.get_user(callback.from_user.id)
+    notification_service = NotificationService(callback.bot)
+
+    reminder_time = client.get("reminder_time", "09:00") if client else "09:00"
+
+    message = (
+        f"<b>✂️ Вас записали!</b>\n\n"
+        f"✂️ Услуга: {service_name}\n"
+        f"✂️ Барбер: {barber['full_name']}\n"
+        f"📅 Дата: {date_str}\n"
+        f"🕐 Время: {time_str}\n\n"
+        f"⏰ В день приема получишь напоминание в {reminder_time}"
+    )
+
+    await notification_service.notify_user(
+        user_id=client_id,
+        notification_type=NotificationType.APPOINTMENT_BOOKED,
+        title="✂️ Запись подтверждена",
+        message=message,
+    )
+
+    await state.clear()
 
 
 @router.callback_query(F.data.startswith("barber_book_service_"))
