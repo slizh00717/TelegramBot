@@ -576,14 +576,20 @@ async def client_view_price(callback: CallbackQuery):
             else:
                 price_text += f"✂️💈 Стрижка + Борода: не установлена\n"
 
-            # Show updated_at if available
+            # Show updated_at if available (converted to local timezone)
             updated_at = services.get("updated_at")
             if updated_at:
                 if isinstance(updated_at, str):
                     price_text += f"<i>Обновлено: {updated_at}</i>\n"
                 else:
+                    # Convert UTC to local timezone (Minsk)
+                    tz = get_timezone()
+                    if updated_at.tzinfo is None:
+                        # If naive datetime, assume UTC
+                        updated_at = pytz.UTC.localize(updated_at)
+                    local_time = updated_at.astimezone(tz)
                     price_text += (
-                        f"<i>Обновлено: {updated_at.strftime('%d.%m.%Y %H:%M')}</i>\n"
+                        f"<i>Обновлено: {local_time.strftime('%d.%m.%Y %H:%M')}</i>\n"
                     )
 
             price_text += "\n"

@@ -1944,7 +1944,13 @@ async def barber_manage_services(callback: CallbackQuery):
         if isinstance(updated_at, str):
             updated_text = f"\n⏰ <i>Последнее обновление: {updated_at}</i>"
         else:
-            updated_text = f"\n⏰ <i>Последнее обновление: {updated_at.strftime('%d.%m.%Y %H:%M')}</i>"
+            # Convert UTC to local timezone (Minsk)
+            tz = get_timezone()
+            if updated_at.tzinfo is None:
+                # If naive datetime, assume UTC
+                updated_at = pytz.UTC.localize(updated_at)
+            local_time = updated_at.astimezone(tz)
+            updated_text = f"\n⏰ <i>Последнее обновление: {local_time.strftime('%d.%m.%Y %H:%M')}</i>"
 
     services_text = (
         f"💰 <b>Мои услуги (в BYN)</b>\n\n"
@@ -2166,7 +2172,13 @@ async def save_price_handler(callback: CallbackQuery, state: FSMContext):
         if isinstance(updated_at, str):
             updated_text = f"\n⏰ <i>Последнее обновление: {updated_at}</i>"
         else:
-            updated_text = f"\n⏰ <i>Последнее обновление: {updated_at.strftime('%d.%m.%Y %H:%M')}</i>"
+            # Convert UTC to local timezone (Minsk)
+            tz = get_timezone()
+            if updated_at.tzinfo is None:
+                # If naive datetime, assume UTC
+                updated_at = pytz.UTC.localize(updated_at)
+            local_time = updated_at.astimezone(tz)
+            updated_text = f"\n⏰ <i>Последнее обновление: {local_time.strftime('%d.%m.%Y %H:%M')}</i>"
 
     services_text = (
         f"💰 <b>Мои услуги (в BYN)</b>\n\n"
