@@ -76,10 +76,57 @@ class PriceViewStates(StatesGroup):
     viewing_price = State()
 
 
+class BookingStates(StatesGroup):
+    choosing_service = State()
+    choosing_date = State()
+    choosing_time = State()
+
+
 @router.callback_query(F.data == "client_book_appointment")
 @require_role(UserRole.CLIENT)
-async def book_appointment_handler(callback: CallbackQuery):
-    """Start appointment booking"""
+async def book_appointment_handler(callback: CallbackQuery, state: FSMContext):
+    """Start appointment booking - choose service"""
+    await state.clear()
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✂️ Стрижка",
+                    callback_data="select_service_haircut",
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="✂️💈 Стрижка + Борода",
+                    callback_data="select_service_haircut_and_beard",
+                )
+            ],
+            [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")],
+        ]
+    )
+
+    try:
+        await callback.message.edit_text(
+            "🪒 <b>Выбери услугу</b>\n\n"
+            "✂️ <b>Стрижка</b> - классическая стрижка\n"
+            "✂️💈 <b>Стрижка + Борода</b> - полный уход",
+            reply_markup=keyboard,
+        )
+        await state.set_state(BookingStates.choosing_service)
+    except TelegramBadRequest as e:
+        if "message is not modified" not in str(e):
+            raise
+
+
+@router.callback_query(F.data.startswith("select_service_"))
+@require_role(UserRole.CLIENT)
+async def select_service_handler(callback: CallbackQuery, state: FSMContext):
+    """Handle service selection"""
+    service_type = callback.data.replace("select_service_", "")
+
+    await state.update_data(selected_service=service_type)
+
     # Get available dates
     schedule_repo = ScheduleRepository()
     schedules = await schedule_repo.find_many({"is_published": True})
@@ -90,15 +137,18 @@ async def book_appointment_handler(callback: CallbackQuery):
             "😔 К сожалению, нет доступных расписаний. "
             "Попробуй позже или свяжись с барбером"
         )
+        await state.clear()
         return
 
     # Show available dates
-    text = "📅 <b>Выбери дату</b>\n\n"
+    text = (
+        "📅 <b>Выбери дату</b>\n\n"
+        f"Услуга: <b>{'Стрижка' if service_type == 'haircut' else 'Стрижка + Борода'}</b>\n\n"
+    )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
 
     dates = set()
     for schedule in schedules:
-        # Convert datetime to date if needed
         schedule_date = (
             schedule["date"].date()
             if hasattr(schedule["date"], "date")
@@ -107,7 +157,7 @@ async def book_appointment_handler(callback: CallbackQuery):
         if schedule_date >= get_today():
             dates.add(schedule_date)
 
-    for date_obj in sorted(dates)[:10]:  # Show max 10 dates
+    for date_obj in sorted(dates)[:10]:
         date_str = date_obj.strftime("%d.%m.%Y")
         keyboard.inline_keyboard.append(
             [
@@ -118,39 +168,59 @@ async def book_appointment_handler(callback: CallbackQuery):
         )
 
     keyboard.inline_keyboard.append(
-        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")]
+        [
+            InlineKeyboardButton(
+                text="⬅️ Назад", callback_data="client_book_appointment"
+            ),
+            InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu"),
+        ]
     )
 
     try:
         await callback.message.edit_text(text, reply_markup=keyboard)
+        await state.set_state(BookingStates.choosing_date)
     except TelegramBadRequest as e:
-        if "message is not modified" in str(e):
-            logger.debug(f"Message not modified: {e}")
-        else:
+        if "message is not modified" not in str(e):
             raise
 
 
 @router.callback_query(F.data.startswith("select_date_"))
 @require_role(UserRole.CLIENT)
-async def select_date_handler(callback: CallbackQuery):
-    """Show available slots for selected date"""
+async def select_date_handler(callback: CallbackQuery, state: FSMContext):
+    """Show available slots for selected date and service"""
     date_str = callback.data.split("_")[-1]
     date_obj = datetime.fromisoformat(date_str).date()
 
-    # Get available slots for the date (all barbers)
-    time_slot_repo = TimeSlotRepository()
-    # Convert date to datetime range
-    from datetime import datetime as dt
+    # Get selected service type
+    data = await state.get_data()
+    service_type = data.get("selected_service", "haircut")
 
-    date_start = dt.combine(date_obj, dt.min.time())
-    date_end = dt.combine(date_obj, dt.max.time())
+    # Get schedule repo to find all barbers with schedules on this date
+    schedule_repo = ScheduleRepository()
+    schedule_service = ScheduleService()
 
-    # Find all available slots for this date
-    slots = await time_slot_repo.find_many(
-        {"status": "available", "start_time": {"$gte": date_start, "$lte": date_end}}
-    )
+    schedules = await schedule_repo.find_many({"is_published": True})
 
-    if not slots:
+    # Collect all slots from all barbers for this date and service type
+    all_slots = []
+    barber_info = {}
+
+    for schedule in schedules:
+        schedule_date = (
+            schedule["date"].date()
+            if hasattr(schedule["date"], "date")
+            else schedule["date"]
+        )
+
+        if schedule_date == date_obj:
+            barber_id = str(schedule["barber_id"])
+            slots = await schedule_service.get_available_slots_for_service(
+                barber_id, date_obj, service_type
+            )
+            all_slots.extend(slots)
+            barber_info[barber_id] = schedule
+
+    if not all_slots:
         try:
             await callback.message.edit_text(
                 f"📅 Выбранная дата: <b>{date_obj.strftime('%d.%m.%Y')}</b>\n\n"
@@ -162,54 +232,89 @@ async def select_date_handler(callback: CallbackQuery):
         return
 
     # Show available slots
+    service_name = "Стрижка" if service_type == "haircut" else "Стрижка + Борода"
     text = (
-        f"📅 Выбранная дата: <b>{date_obj.strftime('%d.%m.%Y')}</b>\n\n"
+        f"📅 Выбранная дата: <b>{date_obj.strftime('%d.%m.%Y')}</b>\n"
+        f"Услуга: <b>{service_name}</b>\n\n"
         f"🕐 <b>Выбери время</b>\n\n"
     )
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
     tz = get_timezone()
-    added_times = set()  # Track added times to avoid duplicates
+    added_times = set()
+    slot_mapping = {}
+    button_idx = 0
 
-    for slot in sorted(slots, key=lambda s: s["start_time"])[:20]:  # Max 20 slots
-        # Convert UTC datetime from MongoDB back to local timezone
+    for slot in sorted(all_slots, key=lambda s: s["start_time"])[:20]:
         start_time_utc = slot["start_time"]
         if start_time_utc.tzinfo is None:
             start_time_utc = pytz.utc.localize(start_time_utc)
         start_time_local = start_time_utc.astimezone(tz)
         time_str = start_time_local.strftime("%H:%M")
 
-        # Skip if we already added this time
         if time_str in added_times:
             continue
 
         added_times.add(time_str)
+        slot_mapping[button_idx] = slot
         keyboard.inline_keyboard.append(
             [
                 InlineKeyboardButton(
-                    text=time_str, callback_data=f"book_slot_{slot['_id']}"
+                    text=time_str, callback_data=f"book_slot_{button_idx}"
                 )
             ]
         )
+        button_idx += 1
 
-    keyboard.inline_keyboard.append(
-        [InlineKeyboardButton(text="⬅️ Назад", callback_data="client_book_appointment")]
+    # Save slot mapping and service type to state
+    await state.update_data(
+        slot_mapping=slot_mapping, booking_date=date_obj, booking_service=service_type
     )
 
-    await callback.message.edit_text(text, reply_markup=keyboard)
+    keyboard.inline_keyboard.append(
+        [
+            InlineKeyboardButton(
+                text="⬅️ Назад", callback_data="client_book_appointment"
+            ),
+        ]
+    )
+
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+        await state.set_state(BookingStates.choosing_time)
+    except TelegramBadRequest as e:
+        if "message is not modified" not in str(e):
+            raise
 
 
 @router.callback_query(F.data.startswith("book_slot_"))
 @require_role(UserRole.CLIENT)
-async def confirm_booking_handler(callback: CallbackQuery):
+async def confirm_booking_handler(callback: CallbackQuery, state: FSMContext):
     """Confirm appointment booking"""
-    slot_id = callback.data.split("_")[-1]
+    button_idx = int(callback.data.split("_")[-1])
+
+    # Get data from state
+    data = await state.get_data()
+    slot_mapping = data.get("slot_mapping", {})
+    service_type = data.get("booking_service", "haircut")
+
+    if button_idx not in slot_mapping:
+        await callback.message.edit_text("❌ Ошибка: слот не найден. Попробуй ещё раз.")
+        return
+
+    slot = slot_mapping[button_idx]
 
     # Get user
     user = await user_service.get_user(callback.from_user.id)
 
-    # Book appointment
-    appointment = await appointment_service.book_appointment(slot_id, str(user["_id"]))
+    # Get barber info from slot
+    barber_id = str(slot["barber_id"])
+    barber = await user_service.user_repo.find_by_id(barber_id)
+
+    # Book appointment with service type
+    appointment = await appointment_service.book_appointment(
+        slot, str(user["_id"]), service_type=service_type
+    )
 
     if not appointment:
         await callback.message.edit_text(
@@ -219,20 +324,20 @@ async def confirm_booking_handler(callback: CallbackQuery):
         return
 
     # Format time and date
-    # appointment_time is already a string like "10:00"
     time_str = appointment["appointment_time"]
-    # appointment_date is a datetime, extract date
     date_str = (
         appointment["appointment_date"].strftime("%d.%m.%Y")
         if hasattr(appointment["appointment_date"], "strftime")
         else str(appointment["appointment_date"])
     )
+    service_name = "Стрижка" if service_type == "haircut" else "Стрижка + Борода"
 
     reminder_time = user.get("reminder_time", "09:00")
 
     await callback.message.edit_text(
         f"✅ <b>Запись подтверждена</b>\n\n"
-        f"👤 Клиент: {user['full_name']}\n"
+        f"✂️ Услуга: {service_name}\n"
+        f"👤 Барбер: {barber.get('full_name', 'Барбер') if barber else 'Барбер'}\n"
         f"📅 Дата: {date_str}\n"
         f"🕐 Время: {time_str}\n\n"
         f"⏰ В день приема получишь напоминание в {reminder_time}"
@@ -244,6 +349,7 @@ async def confirm_booking_handler(callback: CallbackQuery):
             chat_id=settings.barber_chat_id,
             text=(
                 f"📝 <b>Новая запись</b>\n\n"
+                f"✂️ Услуга: {service_name}\n"
                 f"👤 Клиент: {user['full_name']}\n"
                 f"📱 Телефон: {user.get('phone', 'не указан')}\n"
                 f"📅 Дата: {date_str}\n"
@@ -255,8 +361,10 @@ async def confirm_booking_handler(callback: CallbackQuery):
         logger.warning(f"Could not send booking notification to barber: {e}")
 
     logger.info(
-        f"Client {callback.from_user.id} booked appointment {appointment['_id']}"
+        f"Client {callback.from_user.id} booked appointment {appointment['_id']} for service {service_type}"
     )
+
+    await state.clear()
 
 
 @router.callback_query(F.data == "client_view_appointments")

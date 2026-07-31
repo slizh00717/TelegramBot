@@ -22,7 +22,8 @@ class ScheduleCreate(BaseModel):
     date: date
     start_time: time
     end_time: time
-    session_duration_minutes: int = 60
+    haircut_duration_minutes: int = 60
+    haircut_and_beard_duration_minutes: int = 90
 
 
 class ScheduleUpdate(BaseModel):
@@ -35,7 +36,8 @@ class ScheduleRead(BaseModel):
     date: date
     start_time: time
     end_time: time
-    session_duration_minutes: int
+    haircut_duration_minutes: int
+    haircut_and_beard_duration_minutes: int
     is_published: bool = False
     created_at: datetime
     updated_at: datetime

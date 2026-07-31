@@ -25,6 +25,7 @@ class AppointmentCreate(BaseModel):
     client_name: str
     appointment_date: date
     appointment_time: time
+    service_type: str = "haircut"
 
 
 class AppointmentUpdate(BaseModel):
@@ -45,6 +46,7 @@ class AppointmentRead(BaseModel):
     client_phone: str
     client_name: str
     status: AppointmentStatus
+    service_type: str = "haircut"
     cancelled_by: Optional[Literal["CLIENT", "BARBER"]] = None
     cancelled_at: Optional[datetime] = None
     cancel_reason: Optional[str] = None

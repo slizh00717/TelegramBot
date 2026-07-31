@@ -14,7 +14,8 @@ class ScheduleRepository(BaseRepository):
         date_obj: date,
         start_time,
         end_time,
-        session_duration_minutes: int,
+        haircut_duration_minutes: int = 60,
+        haircut_and_beard_duration_minutes: int = 90,
     ) -> str:
         """Create a new schedule"""
         # Convert date to datetime (MongoDB requires datetime, not date)
@@ -37,7 +38,8 @@ class ScheduleRepository(BaseRepository):
             "date": date_dt,
             "start_time": start_time_str,
             "end_time": end_time_str,
-            "session_duration_minutes": session_duration_minutes,
+            "haircut_duration_minutes": haircut_duration_minutes,
+            "haircut_and_beard_duration_minutes": haircut_and_beard_duration_minutes,
             "is_published": False,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),

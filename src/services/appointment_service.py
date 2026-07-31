@@ -15,32 +15,31 @@ class AppointmentService:
         self.user_repo = UserRepository()
 
     async def book_appointment(
-        self, time_slot_id: str, client_id: str
+        self, slot, client_id: str, service_type: str = "haircut"
     ) -> Optional[Dict[str, Any]]:
         """
         Book an appointment for a client on a time slot.
 
         Args:
-            time_slot_id: ID of the time slot
+            slot: Either a slot ID (string) or a slot object (dict)
             client_id: ID of the client
+            service_type: Type of service ("haircut" or "haircut_and_beard")
 
         Returns:
             Created appointment or None if booking failed
         """
-        # Get time slot
-        time_slot = await self.time_slot_repo.find_by_id_typed(time_slot_id)
-        if not time_slot:
-            logger.warning(f"Time slot {time_slot_id} not found")
-            return None
-
-        # Check if slot is available
-        from src.enums import TimeSlotStatus
-
-        if time_slot["status"] != TimeSlotStatus.AVAILABLE.value:
-            logger.warning(
-                f"Time slot {time_slot_id} is not available. Status: {time_slot['status']}"
-            )
-            return None
+        # Handle both old (ID-based) and new (object-based) slot formats
+        if isinstance(slot, str):
+            # Old format: get from database
+            time_slot = await self.time_slot_repo.find_by_id_typed(slot)
+            if not time_slot:
+                logger.warning(f"Time slot {slot} not found")
+                return None
+            time_slot_id = slot
+        else:
+            # New format: slot is already a dict with slot info
+            time_slot = slot
+            time_slot_id = str(time_slot.get("_id", ""))
 
         # Get client data
         client = await self.user_repo.find_by_id(client_id)
@@ -68,7 +67,7 @@ class AppointmentService:
         logger.info(f"After convert to local: {start_time_local}")
         logger.info(f"Local time only: {start_time_local.time()}")
 
-        # Create appointment
+        # Create appointment with service type
         appointment_id = await self.appointment_repo.create_appointment(
             time_slot_id=time_slot_id,
             barber_id=str(time_slot["barber_id"]),
@@ -77,12 +76,16 @@ class AppointmentService:
             client_name=client.get("full_name", ""),
             appointment_date=start_time_local.date(),
             appointment_time=start_time_local.time(),
+            service_type=service_type,
         )
 
-        # Book the time slot
-        await self.time_slot_repo.book_slot(time_slot_id)
+        # Book the time slot if it exists in DB
+        if isinstance(slot, str):
+            await self.time_slot_repo.book_slot(time_slot_id)
 
-        logger.info(f"Booked appointment {appointment_id} for client {client_id}")
+        logger.info(
+            f"Booked appointment {appointment_id} for client {client_id}, service: {service_type}"
+        )
         appointment = await self.appointment_repo.find_by_id(appointment_id)
         return appointment
 

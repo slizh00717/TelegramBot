@@ -18,6 +18,7 @@ class AppointmentRepository(BaseRepository):
         client_name: str,
         appointment_date: date,
         appointment_time,
+        service_type: str = "haircut",
     ) -> str:
         """Create a new appointment"""
         # Convert date to datetime (MongoDB requires datetime, not date)
@@ -37,6 +38,7 @@ class AppointmentRepository(BaseRepository):
             "client_phone": client_phone,
             "client_name": client_name,
             "status": AppointmentStatus.BOOKED.value,
+            "service_type": service_type,
             "cancelled_by": None,
             "cancelled_at": None,
             "cancel_reason": None,
