@@ -7,12 +7,23 @@ import random
 
 
 class UserRepository(BaseRepository):
-    def __init__(self):
+    """Repository for user collection operations.
+
+    Handles all database operations for users including creation, retrieval,
+    updates for subscriptions, blocking, referral management, and bonus balances.
+    """
+
+    def __init__(self) -> None:
+        """Initialize UserRepository with users collection."""
         super().__init__("users")
 
     @staticmethod
     def generate_referral_code() -> str:
-        """Generate a unique referral code"""
+        """Generate a random unique referral code.
+
+        Returns:
+            8-character referral code (letters + digits)
+        """
         chars = string.ascii_letters + string.digits
         return "".join(random.choices(chars, k=8))
 
@@ -26,7 +37,20 @@ class UserRepository(BaseRepository):
         referral_code: Optional[str] = None,
         referred_by: Optional[str] = None,
     ) -> str:
-        """Create a new user"""
+        """Create a new user with default values.
+
+        Args:
+            telegram_id: Unique Telegram user ID
+            full_name: User's full name
+            role: User role (CLIENT or BARBER)
+            phone: Optional phone number
+            username: Optional Telegram username
+            referral_code: Optional custom referral code (auto-generated if not provided)
+            referred_by: Optional user ID who referred this user
+
+        Returns:
+            String ID of created user document
+        """
         # Generate referral code if not provided
         if not referral_code:
             referral_code = self.generate_referral_code()
@@ -51,23 +75,52 @@ class UserRepository(BaseRepository):
         return await self.create(user_data)
 
     async def find_by_telegram_id(self, telegram_id: int) -> Optional[Dict[str, Any]]:
-        """Find user by Telegram ID"""
+        """Find user by Telegram ID.
+
+        Args:
+            telegram_id: Telegram user ID
+
+        Returns:
+            User document or None if not found
+        """
         return await self.find_one({"telegram_id": telegram_id})
 
     async def find_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
-        """Find user by phone number"""
+        """Find user by phone number.
+
+        Args:
+            phone: Phone number to search for
+
+        Returns:
+            User document or None if not found
+        """
         return await self.find_one({"phone": phone})
 
     async def find_all_clients(self) -> List[Dict[str, Any]]:
-        """Find all clients"""
+        """Find all client users.
+
+        Returns:
+            List of all client user documents
+        """
         return await self.find_many({"role": UserRole.CLIENT.value})
 
     async def find_all_subscribed(self) -> List[Dict[str, Any]]:
-        """Find all subscribed users"""
+        """Find all users subscribed to notifications.
+
+        Note: This loads ALL subscribed users into memory. For large datasets,
+        use find_many with pagination instead.
+
+        Returns:
+            List of subscribed user documents
+        """
         return await self.find_many({"is_subscribed": True})
 
     async def find_barbers(self) -> List[Dict[str, Any]]:
-        """Find all barbers"""
+        """Find all barber users.
+
+        Returns:
+            List of all barber user documents
+        """
         return await self.find_many({"role": UserRole.BARBER.value})
 
     async def update_user(self, telegram_id: int, data: Dict[str, Any]) -> bool:
