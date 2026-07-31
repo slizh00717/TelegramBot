@@ -13,26 +13,36 @@ class NotificationService:
         self.user_repo = UserRepository()
         self.bot = bot
 
-    async def send_message(self, chat_id: int, message_text: str,
-                          reply_markup: Optional[InlineKeyboardMarkup] = None) -> bool:
+    async def send_message(
+        self,
+        chat_id: int,
+        message_text: str,
+        reply_markup: Optional[InlineKeyboardMarkup] = None,
+    ) -> bool:
         """Send a message via Telegram"""
         if not self.bot:
             logger.warning("Bot not initialized, cannot send message")
             return False
 
         try:
-            await self.bot.send_message(chat_id, message_text, parse_mode="HTML",
-                                       reply_markup=reply_markup)
+            await self.bot.send_message(
+                chat_id, message_text, parse_mode="HTML", reply_markup=reply_markup
+            )
             logger.info(f"Sent message to {chat_id}")
             return True
         except Exception as e:
             logger.error(f"Failed to send message to {chat_id}: {e}")
             return False
 
-    async def create_notification(self, recipient_id: str, notification_type: NotificationType,
-                                 title: str, message: str,
-                                 related_appointment_id: Optional[str] = None,
-                                 related_schedule_id: Optional[str] = None) -> str:
+    async def create_notification(
+        self,
+        recipient_id: str,
+        notification_type: NotificationType,
+        title: str,
+        message: str,
+        related_appointment_id: Optional[str] = None,
+        related_schedule_id: Optional[str] = None,
+    ) -> str:
         """Create a notification record"""
         notification_id = await self.notification_repo.create_notification(
             recipient_id=recipient_id,
@@ -40,15 +50,20 @@ class NotificationService:
             title=title,
             message=message,
             related_appointment_id=related_appointment_id,
-            related_schedule_id=related_schedule_id
+            related_schedule_id=related_schedule_id,
         )
         return notification_id
 
-    async def notify_user(self, user_id: str, notification_type: NotificationType,
-                         title: str, message: str,
-                         related_appointment_id: Optional[str] = None,
-                         related_schedule_id: Optional[str] = None,
-                         reply_markup: Optional[InlineKeyboardMarkup] = None) -> bool:
+    async def notify_user(
+        self,
+        user_id: str,
+        notification_type: NotificationType,
+        title: str,
+        message: str,
+        related_appointment_id: Optional[str] = None,
+        related_schedule_id: Optional[str] = None,
+        reply_markup: Optional[InlineKeyboardMarkup] = None,
+    ) -> bool:
         """Create notification and send it to user"""
         # Get user
         user = await self.user_repo.find_by_id(user_id)
@@ -68,20 +83,27 @@ class NotificationService:
             title=title,
             message=message,
             related_appointment_id=related_appointment_id,
-            related_schedule_id=related_schedule_id
+            related_schedule_id=related_schedule_id,
         )
 
         # Send message
-        if await self.send_message(user["telegram_id"], message, reply_markup=reply_markup):
+        if await self.send_message(
+            user["telegram_id"], message, reply_markup=reply_markup
+        ):
             # Mark as sent
             await self.notification_repo.mark_sent(notification_id, "TELEGRAM")
             return True
 
         return False
 
-    async def notify_subscribers(self, notification_type: NotificationType, title: str,
-                                message: str, exclude_user_id: Optional[str] = None,
-                                reply_markup: Optional[InlineKeyboardMarkup] = None) -> int:
+    async def notify_subscribers(
+        self,
+        notification_type: NotificationType,
+        title: str,
+        message: str,
+        exclude_user_id: Optional[str] = None,
+        reply_markup: Optional[InlineKeyboardMarkup] = None,
+    ) -> int:
         """Send notification to all subscribed clients"""
         clients = await self.user_repo.find_all_subscribed()
         sent_count = 0
@@ -100,7 +122,7 @@ class NotificationService:
                 notification_type=notification_type,
                 title=title,
                 message=message,
-                reply_markup=reply_markup
+                reply_markup=reply_markup,
             )
 
             if success:
@@ -109,8 +131,9 @@ class NotificationService:
         logger.info(f"Sent '{title}' notification to {sent_count} subscribers")
         return sent_count
 
-    async def send_schedule_published_notification(self, schedule_id: str, barber_name: str,
-                                                  date_str: str, available_slots: int) -> int:
+    async def send_schedule_published_notification(
+        self, schedule_id: str, barber_name: str, date_str: str, available_slots: int
+    ) -> int:
         """Send schedule published notification to all subscribers"""
         message = (
             f"<b>✂️ Новое расписание от {barber_name}</b>\n\n"
@@ -122,11 +145,12 @@ class NotificationService:
         return await self.notify_subscribers(
             notification_type=NotificationType.SCHEDULE_PUBLISHED,
             title="Расписание опубликовано",
-            message=message
+            message=message,
         )
 
-    async def send_appointment_booked_notification(self, barber_id: str, client_name: str,
-                                                  appointment_time: str) -> bool:
+    async def send_appointment_booked_notification(
+        self, barber_id: str, client_name: str, appointment_time: str
+    ) -> bool:
         """Send notification to barber about new appointment"""
         barber = await self.user_repo.find_by_id(barber_id)
         if not barber:
@@ -142,10 +166,12 @@ class NotificationService:
             user_id=barber_id,
             notification_type=NotificationType.APPOINTMENT_BOOKED,
             title="Новая запись",
-            message=message
+            message=message,
         )
 
-    async def send_appointment_cancelled_notification(self, client_id: str, reason: str) -> bool:
+    async def send_appointment_cancelled_notification(
+        self, client_id: str, reason: str
+    ) -> bool:
         """Send notification to client about cancelled appointment"""
         message = (
             f"<b>❌ Ваша запись была отменена</b>\n\n"
@@ -157,11 +183,15 @@ class NotificationService:
             user_id=client_id,
             notification_type=NotificationType.APPOINTMENT_CANCELLED,
             title="Запись отменена",
-            message=message
+            message=message,
         )
 
-    async def send_reminder_notification(self, client_id: str, appointment_time: str,
-                                        barber_address: Optional[str] = None) -> bool:
+    async def send_reminder_notification(
+        self,
+        client_id: str,
+        appointment_time: str,
+        barber_address: Optional[str] = None,
+    ) -> bool:
         """Send reminder notification to client"""
         message = (
             f"<b>⏰ Напоминание о вашей записи</b>\n\n"
@@ -176,10 +206,12 @@ class NotificationService:
             user_id=client_id,
             notification_type=NotificationType.REMINDER,
             title="Напоминание о записи",
-            message=message
+            message=message,
         )
 
-    async def send_slot_available_notification(self, barber_id: str, slot_time: str) -> bool:
+    async def send_slot_available_notification(
+        self, barber_id: str, slot_time: str
+    ) -> bool:
         """Send notification to barber about available slot"""
         message = (
             f"<b>✨ Место освободилось</b>\n\n"
@@ -191,7 +223,7 @@ class NotificationService:
             user_id=barber_id,
             notification_type=NotificationType.SLOT_AVAILABLE,
             title="Место освободилось",
-            message=message
+            message=message,
         )
 
     def set_bot(self, bot: Bot):

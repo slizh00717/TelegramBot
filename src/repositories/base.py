@@ -21,7 +21,9 @@ class BaseRepository(ABC):
         """Find document by ID"""
         return self.collection.find_one({"_id": ObjectId(id)})
 
-    async def find_many(self, query: Dict[str, Any], limit: int = 100, skip: int = 0) -> List[Dict[str, Any]]:
+    async def find_many(
+        self, query: Dict[str, Any], limit: int = 100, skip: int = 0
+    ) -> List[Dict[str, Any]]:
         """Find multiple documents"""
         return list(self.collection.find(query).skip(skip).limit(limit))
 
@@ -31,10 +33,7 @@ class BaseRepository(ABC):
 
     async def update(self, id: str, data: Dict[str, Any]) -> bool:
         """Update document by ID"""
-        result = self.collection.update_one(
-            {"_id": ObjectId(id)},
-            {"$set": data}
-        )
+        result = self.collection.update_one({"_id": ObjectId(id)}, {"$set": data})
         return result.modified_count > 0
 
     async def update_many(self, query: Dict[str, Any], data: Dict[str, Any]) -> int:

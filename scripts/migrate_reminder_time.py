@@ -1,9 +1,11 @@
 """
 Скрипт для добавления времени напоминания существующим пользователям
 """
+
 import asyncio
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.repositories import UserRepository
@@ -29,7 +31,9 @@ async def migrate_reminder_time():
 
         if success:
             updated += 1
-            logger.info(f"✅ {user['full_name']} ({user['telegram_id']}) - время: 09:00")
+            logger.info(
+                f"✅ {user['full_name']} ({user['telegram_id']}) - время: 09:00"
+            )
         else:
             logger.error(f"❌ Ошибка при обновлении {user['full_name']}")
 

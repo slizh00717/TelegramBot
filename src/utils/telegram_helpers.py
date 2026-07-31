@@ -3,7 +3,9 @@ from aiogram.exceptions import TelegramBadRequest
 from src.utils import logger
 
 
-async def safe_edit_text(message: Message, text: str, reply_markup=None, parse_mode="HTML") -> bool:
+async def safe_edit_text(
+    message: Message, text: str, reply_markup=None, parse_mode="HTML"
+) -> bool:
     """
     Safely edit message text, ignoring 'message not modified' errors.
 

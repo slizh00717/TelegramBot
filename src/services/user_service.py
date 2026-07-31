@@ -8,9 +8,15 @@ class UserService:
     def __init__(self):
         self.user_repo = UserRepository()
 
-    async def register_user(self, telegram_id: int, full_name: str, role: UserRole,
-                           phone: Optional[str] = None, username: Optional[str] = None,
-                           referral_code_from: Optional[str] = None) -> str:
+    async def register_user(
+        self,
+        telegram_id: int,
+        full_name: str,
+        role: UserRole,
+        phone: Optional[str] = None,
+        username: Optional[str] = None,
+        referral_code_from: Optional[str] = None,
+    ) -> str:
         """
         Register a new user.
 
@@ -52,15 +58,19 @@ class UserService:
             role=role,
             phone=normalized_phone,
             username=username,
-            referred_by=referred_by
+            referred_by=referred_by,
         )
 
         # Increment referral count for referrer if applicable
         if referred_by:
             await self.user_repo.increment_referral_count(referred_by)
-            logger.info(f"Registered user {user_id} (telegram_id: {telegram_id}) referred by {referred_by}")
+            logger.info(
+                f"Registered user {user_id} (telegram_id: {telegram_id}) referred by {referred_by}"
+            )
         else:
-            logger.info(f"Registered user {user_id} (telegram_id: {telegram_id}, role: {role})")
+            logger.info(
+                f"Registered user {user_id} (telegram_id: {telegram_id}, role: {role})"
+            )
 
         return user_id
 
@@ -68,8 +78,12 @@ class UserService:
         """Get user by Telegram ID"""
         return await self.user_repo.find_by_telegram_id(telegram_id)
 
-    async def update_user_profile(self, telegram_id: int, full_name: Optional[str] = None,
-                                 phone: Optional[str] = None) -> bool:
+    async def update_user_profile(
+        self,
+        telegram_id: int,
+        full_name: Optional[str] = None,
+        phone: Optional[str] = None,
+    ) -> bool:
         """Update user profile"""
         user = await self.get_user(telegram_id)
         if not user:
@@ -137,9 +151,13 @@ class UserService:
         user = await self.user_repo.find_by_id(user_id)
         return user and user.get("is_blocked", False) if user else False
 
-    async def update_barber_services(self, barber_id: str, haircut: Optional[float] = None,
-                                    beard_trim: Optional[float] = None,
-                                    haircut_and_beard: Optional[float] = None) -> bool:
+    async def update_barber_services(
+        self,
+        barber_id: str,
+        haircut: Optional[float] = None,
+        beard_trim: Optional[float] = None,
+        haircut_and_beard: Optional[float] = None,
+    ) -> bool:
         """Update barber services and prices"""
         # Get current services
         user = await self.user_repo.find_by_id(barber_id)
@@ -147,9 +165,19 @@ class UserService:
 
         # Build complete services dict
         services = {
-            "haircut": haircut if haircut is not None else current_services.get("haircut"),
-            "beard_trim": beard_trim if beard_trim is not None else current_services.get("beard_trim"),
-            "haircut_and_beard": haircut_and_beard if haircut_and_beard is not None else current_services.get("haircut_and_beard")
+            "haircut": (
+                haircut if haircut is not None else current_services.get("haircut")
+            ),
+            "beard_trim": (
+                beard_trim
+                if beard_trim is not None
+                else current_services.get("beard_trim")
+            ),
+            "haircut_and_beard": (
+                haircut_and_beard
+                if haircut_and_beard is not None
+                else current_services.get("haircut_and_beard")
+            ),
         }
 
         return await self.user_repo.update_barber_services(barber_id, services)
@@ -178,7 +206,7 @@ class UserService:
         return {
             "referral_code": user.get("referral_code"),
             "referral_count": user.get("referral_count", 0),
-            "referrals": referrals
+            "referrals": referrals,
         }
 
     async def get_referrer_info(self, telegram_id: int) -> Optional[Dict[str, Any]]:
@@ -189,10 +217,7 @@ class UserService:
 
         referrer = await self.user_repo.find_by_id(user.get("referred_by"))
         if referrer:
-            return {
-                "name": referrer.get("full_name"),
-                "phone": referrer.get("phone")
-            }
+            return {"name": referrer.get("full_name"), "phone": referrer.get("phone")}
         return None
 
     async def add_bonus_balance(self, telegram_id: int, amount: float) -> bool:

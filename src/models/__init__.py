@@ -1,7 +1,23 @@
 from .user import UserCreate, UserUpdate, UserRead, UserBase, UserBarberUpdate
-from .schedule import ScheduleCreate, ScheduleRead, ScheduleUpdate, TimeSlotCreate, TimeSlotRead
-from .appointment import AppointmentCreate, AppointmentRead, AppointmentUpdate, AppointmentCancel
-from .notification import NotificationCreate, NotificationRead, ReminderJobCreate, ReminderJobUpdate
+from .schedule import (
+    ScheduleCreate,
+    ScheduleRead,
+    ScheduleUpdate,
+    TimeSlotCreate,
+    TimeSlotRead,
+)
+from .appointment import (
+    AppointmentCreate,
+    AppointmentRead,
+    AppointmentUpdate,
+    AppointmentCancel,
+)
+from .notification import (
+    NotificationCreate,
+    NotificationRead,
+    ReminderJobCreate,
+    ReminderJobUpdate,
+)
 
 __all__ = [
     # User models

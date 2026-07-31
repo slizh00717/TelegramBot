@@ -1,9 +1,11 @@
 """
 Скрипт для добавления реферальных кодов существующим пользователям
 """
+
 import asyncio
 import sys
 import os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.repositories import UserRepository
@@ -15,7 +17,7 @@ import random
 def generate_referral_code() -> str:
     """Generate a unique referral code"""
     chars = string.ascii_letters + string.digits
-    return ''.join(random.choices(chars, k=8))
+    return "".join(random.choices(chars, k=8))
 
 
 async def migrate_referral_codes():
@@ -38,7 +40,9 @@ async def migrate_referral_codes():
 
         if success:
             updated += 1
-            logger.info(f"✅ {user['full_name']} ({user['telegram_id']}) - код: {referral_code}")
+            logger.info(
+                f"✅ {user['full_name']} ({user['telegram_id']}) - код: {referral_code}"
+            )
         else:
             logger.error(f"❌ Ошибка при обновлении {user['full_name']}")
 

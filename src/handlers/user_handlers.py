@@ -1,5 +1,12 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.types import (
+    Message,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+    ReplyKeyboardMarkup,
+    KeyboardButton,
+)
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -21,7 +28,7 @@ def get_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[[KeyboardButton(text="📋 Меню")]],
         resize_keyboard=True,
-        one_time_keyboard=False
+        one_time_keyboard=False,
     )
 
 
@@ -29,7 +36,9 @@ def get_menu_keyboard() -> ReplyKeyboardMarkup:
 async def start_handler(message: Message, state: FSMContext):
     """Handle /start command"""
     # Log chat ID for admin purposes
-    logger.info(f"User /start command - chat_id: {message.chat.id}, user_id: {message.from_user.id}")
+    logger.info(
+        f"User /start command - chat_id: {message.chat.id}, user_id: {message.from_user.id}"
+    )
 
     # Extract referral code from start parameter if present
     referral_code = None
@@ -42,7 +51,7 @@ async def start_handler(message: Message, state: FSMContext):
         await message.answer(
             f"👋 Привет, {user['full_name']}!\n\n"
             "Ты уже зарегистрирован. Используй кнопку меню для навигации.",
-            reply_markup=get_menu_keyboard()
+            reply_markup=get_menu_keyboard(),
         )
     else:
         # Store referral code in state for later use during registration
@@ -52,13 +61,13 @@ async def start_handler(message: Message, state: FSMContext):
         start_keyboard = ReplyKeyboardMarkup(
             keyboard=[[KeyboardButton(text="🚀 Начать регистрацию")]],
             resize_keyboard=True,
-            one_time_keyboard=False
+            one_time_keyboard=False,
         )
 
         await message.answer(
             "👋 Добро пожаловать в барбершоп бот!\n\n"
             "Давай зарегистрируемся. Нажми кнопку ниже:",
-            reply_markup=start_keyboard
+            reply_markup=start_keyboard,
         )
 
 
@@ -71,12 +80,10 @@ async def start_registration_handler(message: Message, state: FSMContext):
         await message.answer(
             f"👋 Привет, {user['full_name']}!\n\n"
             "Ты уже зарегистрирован. Используй кнопку меню для навигации.",
-            reply_markup=get_menu_keyboard()
+            reply_markup=get_menu_keyboard(),
         )
     else:
-        await message.answer(
-            "Укажи своё имя (минимум 2 символа):"
-        )
+        await message.answer("Укажи своё имя (минимум 2 символа):")
         await state.set_state(RegistrationStates.waiting_for_name)
 
 
@@ -94,7 +101,7 @@ async def process_name(message: Message, state: FSMContext):
         "• +375XXXXXXXXX (с плюсом)\n"
         "• 375XXXXXXXXX (без плюса - добавится автоматически)\n"
         "• 0XXXXXXXXX (локальный формат)",
-        reply_markup=get_menu_keyboard()
+        reply_markup=get_menu_keyboard(),
     )
     await state.set_state(RegistrationStates.waiting_for_phone)
 
@@ -117,7 +124,11 @@ async def process_phone(message: Message, state: FSMContext):
     await state.update_data(phone=message.text)
 
     # Automatically determine role based on chat_id
-    role = UserRole.BARBER if message.chat.id == settings.barber_chat_id else UserRole.CLIENT
+    role = (
+        UserRole.BARBER
+        if message.chat.id == settings.barber_chat_id
+        else UserRole.CLIENT
+    )
     username = message.from_user.username
 
     # Get referral code from state if present
@@ -130,7 +141,7 @@ async def process_phone(message: Message, state: FSMContext):
         role=role,
         phone=message.text,
         username=username,
-        referral_code_from=referral_code
+        referral_code_from=referral_code,
     )
 
     if user_id:
@@ -153,7 +164,9 @@ async def process_phone(message: Message, state: FSMContext):
                 "💡 <b>Совет:</b> Нажми на кнопку <b>💰 Прайс</b> в меню, чтобы увидеть стоимость услуг барбера!"
             )
 
-        logger.info(f"User {message.from_user.id} registered as {role.value} with ID {user_id}")
+        logger.info(
+            f"User {message.from_user.id} registered as {role.value} with ID {user_id}"
+        )
     else:
         await message.answer("❌ Ошибка при регистрации. Попробуй /start")
 
@@ -185,73 +198,102 @@ async def menu_callback_handler(callback: CallbackQuery):
         return
 
     if user["role"] == UserRole.BARBER.value:
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="📅 Расписание", callback_data="barber_create_schedule"),
-                InlineKeyboardButton(text="📊 Записи", callback_data="barber_view_appointments"),
-            ],
-            [
-                InlineKeyboardButton(text="👥 Клиенты", callback_data="barber_view_clients"),
-                InlineKeyboardButton(text="⚙️ Профиль", callback_data="barber_profile"),
-            ],
-        ])
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="📅 Расписание", callback_data="barber_create_schedule"
+                    ),
+                    InlineKeyboardButton(
+                        text="📊 Записи", callback_data="barber_view_appointments"
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="👥 Клиенты", callback_data="barber_view_clients"
+                    ),
+                    InlineKeyboardButton(
+                        text="⚙️ Профиль", callback_data="barber_profile"
+                    ),
+                ],
+            ]
+        )
     else:
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="📅 Записаться", callback_data="client_book_appointment"),
-                InlineKeyboardButton(text="📊 Записи", callback_data="client_view_appointments"),
-            ],
-            [
-                InlineKeyboardButton(text="💰 Прайс", callback_data="client_view_price"),
-                InlineKeyboardButton(text="⚙️ Профиль", callback_data="client_profile"),
-            ],
-        ])
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="📅 Записаться", callback_data="client_book_appointment"
+                    ),
+                    InlineKeyboardButton(
+                        text="📊 Записи", callback_data="client_view_appointments"
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="💰 Прайс", callback_data="client_view_price"
+                    ),
+                    InlineKeyboardButton(
+                        text="⚙️ Профиль", callback_data="client_profile"
+                    ),
+                ],
+            ]
+        )
 
-    await callback.message.edit_text(
-        "Меню",
-        reply_markup=keyboard
-    )
+    await callback.message.edit_text("Меню", reply_markup=keyboard)
 
 
 async def show_barber_menu(message: Message, user):
     """Show menu for barber"""
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="📅 Расписание", callback_data="barber_create_schedule"),
-            InlineKeyboardButton(text="📊 Записи", callback_data="barber_view_appointments"),
-        ],
-        [
-            InlineKeyboardButton(text="👥 Клиенты", callback_data="barber_view_clients"),
-            InlineKeyboardButton(text="🚫 Список", callback_data="barber_view_blacklist"),
-        ],
-        [
-            InlineKeyboardButton(text="⚙️ Профиль", callback_data="barber_profile"),
-        ],
-    ])
-
-    await message.answer(
-        "Меню",
-        reply_markup=keyboard
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📅 Расписание", callback_data="barber_create_schedule"
+                ),
+                InlineKeyboardButton(
+                    text="📊 Записи", callback_data="barber_view_appointments"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="👥 Клиенты", callback_data="barber_view_clients"
+                ),
+                InlineKeyboardButton(
+                    text="🚫 Список", callback_data="barber_view_blacklist"
+                ),
+            ],
+            [
+                InlineKeyboardButton(text="⚙️ Профиль", callback_data="barber_profile"),
+            ],
+        ]
     )
+
+    await message.answer("Меню", reply_markup=keyboard)
 
 
 async def show_client_menu(message: Message, user):
     """Show menu for client"""
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="📅 Записаться", callback_data="client_book_appointment"),
-            InlineKeyboardButton(text="📊 Записи", callback_data="client_view_appointments"),
-        ],
-        [
-            InlineKeyboardButton(text="💰 Прайс", callback_data="client_view_price"),
-            InlineKeyboardButton(text="⚙️ Профиль", callback_data="client_profile"),
-        ],
-    ])
-
-    await message.answer(
-        "Меню",
-        reply_markup=keyboard
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📅 Записаться", callback_data="client_book_appointment"
+                ),
+                InlineKeyboardButton(
+                    text="📊 Записи", callback_data="client_view_appointments"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="💰 Прайс", callback_data="client_view_price"
+                ),
+                InlineKeyboardButton(text="⚙️ Профиль", callback_data="client_profile"),
+            ],
+        ]
     )
+
+    await message.answer("Меню", reply_markup=keyboard)
 
 
 @router.message(F.text == "📋 Меню")
@@ -281,5 +323,5 @@ async def help_handler(message: Message):
         "Это бот для записи в барбершоп. "
         "Клиенты могут записываться на стрижку, "
         "а барберы могут управлять своим расписанием.",
-        parse_mode="HTML"
+        parse_mode="HTML",
     )

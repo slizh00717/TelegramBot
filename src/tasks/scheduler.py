@@ -35,7 +35,7 @@ class BotScheduler:
                 id=f"hourly_reminders_{hour:02d}",
                 name=f"Send reminders at {hour:02d}:00",
                 replace_existing=True,
-                args=[notification_service, hour]
+                args=[notification_service, hour],
             )
 
         scheduler.start()
@@ -82,7 +82,7 @@ async def send_hourly_reminders(notification_service: NotificationService, hour:
             if client_reminder_time == hour_str:
                 success = await notification_service.send_reminder_notification(
                     client_id=str(appt["client_id"]),
-                    appointment_time=str(appt["appointment_time"])
+                    appointment_time=str(appt["appointment_time"]),
                 )
 
                 if success:
@@ -90,7 +90,9 @@ async def send_hourly_reminders(notification_service: NotificationService, hour:
                     sent_count += 1
 
         if sent_count > 0:
-            logger.info(f"Hourly reminders job ({hour_str}): sent {sent_count} reminders")
+            logger.info(
+                f"Hourly reminders job ({hour_str}): sent {sent_count} reminders"
+            )
 
     except Exception as e:
         logger.error(f"Error in hourly reminders job (hour={hour}): {e}", exc_info=True)

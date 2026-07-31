@@ -26,8 +26,7 @@ class ReminderService:
 
         # Send reminder
         success = await self.notification_service.send_reminder_notification(
-            client_id=str(appointment["client_id"]),
-            appointment_time=time_str
+            client_id=str(appointment["client_id"]), appointment_time=time_str
         )
 
         if success:
@@ -40,11 +39,14 @@ class ReminderService:
     async def send_daily_reminders(self) -> int:
         """Send reminders for all appointments today"""
         from src.utils import get_today
+
         today = get_today()
 
         # Find appointments that need reminders
         appointments = await self.appointment_repo.find_reminders_needed(today)
-        logger.info(f"Found {len(appointments)} appointments that need reminders for today")
+        logger.info(
+            f"Found {len(appointments)} appointments that need reminders for today"
+        )
 
         sent_count = 0
         for appointment in appointments:
@@ -52,7 +54,9 @@ class ReminderService:
             if success:
                 sent_count += 1
 
-        logger.info(f"Sent {sent_count} reminders out of {len(appointments)} appointments")
+        logger.info(
+            f"Sent {sent_count} reminders out of {len(appointments)} appointments"
+        )
         return sent_count
 
     async def schedule_reminders_for_date(self, target_date) -> List[Dict[str, Any]]:

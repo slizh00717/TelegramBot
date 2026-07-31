@@ -14,11 +14,18 @@ class UserRepository(BaseRepository):
     def generate_referral_code() -> str:
         """Generate a unique referral code"""
         chars = string.ascii_letters + string.digits
-        return ''.join(random.choices(chars, k=8))
+        return "".join(random.choices(chars, k=8))
 
-    async def create_user(self, telegram_id: int, full_name: str, role: UserRole,
-                         phone: Optional[str] = None, username: Optional[str] = None,
-                         referral_code: Optional[str] = None, referred_by: Optional[str] = None) -> str:
+    async def create_user(
+        self,
+        telegram_id: int,
+        full_name: str,
+        role: UserRole,
+        phone: Optional[str] = None,
+        username: Optional[str] = None,
+        referral_code: Optional[str] = None,
+        referred_by: Optional[str] = None,
+    ) -> str:
         """Create a new user"""
         # Generate referral code if not provided
         if not referral_code:
@@ -80,7 +87,7 @@ class UserRepository(BaseRepository):
 
         self.collection.update_one(
             {"_id": user["_id"]},
-            {"$inc": {"visit_count": 1}, "$set": {"updated_at": datetime.utcnow()}}
+            {"$inc": {"visit_count": 1}, "$set": {"updated_at": datetime.utcnow()}},
         )
         return True
 
@@ -100,27 +107,45 @@ class UserRepository(BaseRepository):
         """Unblock user to receive notifications"""
         return await self.update(user_id, {"is_blocked": False})
 
-    async def update_barber_services(self, user_id: str, services: Dict[str, float]) -> bool:
+    async def update_barber_services(
+        self, user_id: str, services: Dict[str, float]
+    ) -> bool:
         """Update barber services and prices with updated_at timestamp"""
         user = await self.find_by_id(user_id)
         if not user:
             return False
 
         # Get current services to preserve unmodified values
-        current_services = user.get("services", {}) if isinstance(user.get("services"), dict) else {}
+        current_services = (
+            user.get("services", {}) if isinstance(user.get("services"), dict) else {}
+        )
 
         # Build complete services dict, preserving existing values
         new_services = {
-            "haircut": services.get("haircut") if services.get("haircut") is not None else current_services.get("haircut"),
-            "beard_trim": services.get("beard_trim") if services.get("beard_trim") is not None else current_services.get("beard_trim"),
-            "haircut_and_beard": services.get("haircut_and_beard") if services.get("haircut_and_beard") is not None else current_services.get("haircut_and_beard"),
-            "updated_at": datetime.utcnow()
+            "haircut": (
+                services.get("haircut")
+                if services.get("haircut") is not None
+                else current_services.get("haircut")
+            ),
+            "beard_trim": (
+                services.get("beard_trim")
+                if services.get("beard_trim") is not None
+                else current_services.get("beard_trim")
+            ),
+            "haircut_and_beard": (
+                services.get("haircut_and_beard")
+                if services.get("haircut_and_beard") is not None
+                else current_services.get("haircut_and_beard")
+            ),
+            "updated_at": datetime.utcnow(),
         }
 
         # Update services
         return await self.update(user_id, {"services": new_services})
 
-    async def find_by_referral_code(self, referral_code: str) -> Optional[Dict[str, Any]]:
+    async def find_by_referral_code(
+        self, referral_code: str
+    ) -> Optional[Dict[str, Any]]:
         """Find user by referral code"""
         return await self.find_one({"referral_code": referral_code})
 
@@ -132,7 +157,7 @@ class UserRepository(BaseRepository):
 
         self.collection.update_one(
             {"_id": user["_id"]},
-            {"$inc": {"referral_count": 1}, "$set": {"updated_at": datetime.utcnow()}}
+            {"$inc": {"referral_count": 1}, "$set": {"updated_at": datetime.utcnow()}},
         )
         return True
 

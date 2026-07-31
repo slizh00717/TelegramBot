@@ -10,8 +10,14 @@ class ScheduleService:
         self.schedule_repo = ScheduleRepository()
         self.time_slot_repo = TimeSlotRepository()
 
-    async def create_schedule(self, barber_id: str, date_obj: date, start_time: time,
-                             end_time: time, session_duration_minutes: int = 60) -> Dict[str, Any]:
+    async def create_schedule(
+        self,
+        barber_id: str,
+        date_obj: date,
+        start_time: time,
+        end_time: time,
+        session_duration_minutes: int = 60,
+    ) -> Dict[str, Any]:
         """
         Create a new schedule and generate time slots.
 
@@ -29,18 +35,33 @@ class ScheduleService:
         schedule_id = await self.schedule_repo.create_schedule(
             barber_id, date_obj, start_time, end_time, session_duration_minutes
         )
-        logger.info(f"Created schedule {schedule_id} for barber {barber_id} on {date_obj}")
+        logger.info(
+            f"Created schedule {schedule_id} for barber {barber_id} on {date_obj}"
+        )
 
         # Generate time slots
-        slots_count = await self._generate_time_slots(schedule_id, barber_id, date_obj,
-                                                      start_time, end_time, session_duration_minutes)
+        slots_count = await self._generate_time_slots(
+            schedule_id,
+            barber_id,
+            date_obj,
+            start_time,
+            end_time,
+            session_duration_minutes,
+        )
         logger.info(f"Generated {slots_count} time slots for schedule {schedule_id}")
 
         schedule = await self.schedule_repo.find_by_id(schedule_id)
         return schedule
 
-    async def _generate_time_slots(self, schedule_id: str, barber_id: str, date_obj: date,
-                                  start_time: time, end_time: time, duration_minutes: int) -> int:
+    async def _generate_time_slots(
+        self,
+        schedule_id: str,
+        barber_id: str,
+        date_obj: date,
+        start_time: time,
+        end_time: time,
+        duration_minutes: int,
+    ) -> int:
         """Generate time slots for a schedule"""
         tz = get_timezone()
         current_time = datetime.combine(date_obj, start_time)
@@ -77,8 +98,9 @@ class ScheduleService:
         """Get all schedules for a barber"""
         return await self.schedule_repo.find_by_barber(barber_id)
 
-    async def get_available_slots_for_barber(self, barber_id: str,
-                                            date_obj: date) -> List[Dict[str, Any]]:
+    async def get_available_slots_for_barber(
+        self, barber_id: str, date_obj: date
+    ) -> List[Dict[str, Any]]:
         """Get available time slots for a barber on a specific date"""
         return await self.time_slot_repo.find_available_for_date(barber_id, date_obj)
 

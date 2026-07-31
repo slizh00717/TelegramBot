@@ -26,10 +26,16 @@ def create_indexes(db: Database) -> None:
     logger.info("Created indexes for time_slots collection")
 
     # Appointments collection
-    db.appointments.create_index([("barber_id", ASCENDING), ("appointment_date", DESCENDING)])
+    db.appointments.create_index(
+        [("barber_id", ASCENDING), ("appointment_date", DESCENDING)]
+    )
     db.appointments.create_index([("client_id", ASCENDING), ("status", ASCENDING)])
-    db.appointments.create_index([("appointment_date", ASCENDING), ("appointment_time", ASCENDING)])
-    db.appointments.create_index("time_slot_id")  # Not unique - allows multiple bookings on same slot if cancelled
+    db.appointments.create_index(
+        [("appointment_date", ASCENDING), ("appointment_time", ASCENDING)]
+    )
+    db.appointments.create_index(
+        "time_slot_id"
+    )  # Not unique - allows multiple bookings on same slot if cancelled
     db.appointments.create_index("reminder_sent")
     logger.info("Created indexes for appointments collection")
 
@@ -40,5 +46,7 @@ def create_indexes(db: Database) -> None:
 
     # Reminder jobs collection
     db.reminder_jobs.create_index("appointment_id", unique=True)
-    db.reminder_jobs.create_index([("status", ASCENDING), ("scheduled_time", ASCENDING)])
+    db.reminder_jobs.create_index(
+        [("status", ASCENDING), ("scheduled_time", ASCENDING)]
+    )
     logger.info("Created indexes for reminder_jobs collection")
