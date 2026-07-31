@@ -1538,14 +1538,17 @@ async def barber_view_clients(callback: CallbackQuery):
     all_clients = await user_service.get_all_subscribed_clients()
     blocked_clients = [c for c in all_clients if c.get("is_blocked", False)]
 
-    keyboard.inline_keyboard.append(
-        [
-            InlineKeyboardButton(
-                text=f"🚫 Чёрный список ({len(blocked_clients)})",
-                callback_data="barber_view_blacklist",
-            )
-        ]
-    )
+    # Only show blacklist button if there are blocked clients
+    if blocked_clients:
+        keyboard.inline_keyboard.append(
+            [
+                InlineKeyboardButton(
+                    text=f"🚫 Чёрный список ({len(blocked_clients)})",
+                    callback_data="barber_view_blacklist",
+                )
+            ]
+        )
+
     keyboard.inline_keyboard.append(
         [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")]
     )
