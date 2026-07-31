@@ -103,30 +103,53 @@ class NotificationService:
         message: str,
         exclude_user_id: Optional[str] = None,
         reply_markup: Optional[InlineKeyboardMarkup] = None,
+        batch_size: int = 100,
     ) -> int:
-        """Send notification to all subscribed clients"""
-        clients = await self.user_repo.find_all_subscribed()
+        """Send notification to all subscribed clients.
+
+        Uses batch processing to avoid loading all users into memory at once.
+
+        Args:
+            notification_type: Type of notification
+            title: Notification title
+            message: Notification message
+            exclude_user_id: User ID to exclude from notification
+            reply_markup: Optional keyboard markup
+            batch_size: Number of users to process at once (default: 100)
+
+        Returns:
+            Number of successfully sent notifications
+        """
         sent_count = 0
+        skip = 0
 
-        for client in clients:
-            if exclude_user_id and str(client["_id"]) == exclude_user_id:
-                continue
-
-            # Skip blocked users
-            if client.get("is_blocked", False):
-                logger.debug(f"User {client['_id']} is blocked, skipping notification")
-                continue
-
-            success = await self.notify_user(
-                user_id=str(client["_id"]),
-                notification_type=notification_type,
-                title=title,
-                message=message,
-                reply_markup=reply_markup,
+        while True:
+            # Load users in batches to avoid memory overload
+            clients = await self.user_repo.find_many(
+                {"is_subscribed": True, "is_blocked": False},
+                limit=batch_size,
+                skip=skip,
             )
 
-            if success:
-                sent_count += 1
+            if not clients:
+                break
+
+            for client in clients:
+                if exclude_user_id and str(client["_id"]) == exclude_user_id:
+                    continue
+
+                success = await self.notify_user(
+                    user_id=str(client["_id"]),
+                    notification_type=notification_type,
+                    title=title,
+                    message=message,
+                    reply_markup=reply_markup,
+                )
+
+                if success:
+                    sent_count += 1
+
+            skip += batch_size
 
         logger.info(f"Sent '{title}' notification to {sent_count} subscribers")
         return sent_count

@@ -55,10 +55,14 @@ class BotScheduler:
 
 
 async def send_hourly_reminders(notification_service: NotificationService, hour: int):
-    """Job that sends reminders for a specific hour"""
+    """Send reminders for a specific hour.
+
+    Optimized to avoid N+1 queries by batch-loading all clients and barbers.
+    """
     try:
         from src.utils import get_today
         from src.repositories import AppointmentRepository, UserRepository
+        from bson import ObjectId
 
         hour_str = f"{hour:02d}:00"
 
@@ -68,11 +72,29 @@ async def send_hourly_reminders(notification_service: NotificationService, hour:
         user_repo = UserRepository()
 
         appointments = await appointment_repo.find_reminders_needed(today)
-        sent_count = 0
+        if not appointments:
+            return
 
+        # Collect unique client and barber IDs to avoid N+1 queries
+        client_ids = list({str(appt["client_id"]) for appt in appointments})
+        barber_ids = list({str(appt["barber_id"]) for appt in appointments})
+
+        # Load all clients and barbers in 2 queries instead of 2N queries
+        clients = await user_repo.find_many(
+            {"_id": {"$in": [ObjectId(cid) for cid in client_ids]}}
+        )
+        barbers = await user_repo.find_many(
+            {"_id": {"$in": [ObjectId(bid) for bid in barber_ids]}}
+        )
+
+        # Create lookup maps for O(1) access
+        client_map = {str(c["_id"]): c for c in clients}
+        barber_map = {str(b["_id"]): b for b in barbers}
+
+        sent_count = 0
         for appt in appointments:
-            # Get client's reminder time preference
-            client = await user_repo.find_by_id(str(appt["client_id"]))
+            client_id_str = str(appt["client_id"])
+            client = client_map.get(client_id_str)
             if not client:
                 continue
 
@@ -80,8 +102,9 @@ async def send_hourly_reminders(notification_service: NotificationService, hour:
 
             # Only send if this is the client's preferred reminder time
             if client_reminder_time == hour_str:
-                # Get barber info
-                barber = await user_repo.find_by_id(str(appt["barber_id"]))
+                # Get barber address from map (O(1))
+                barber_id_str = str(appt["barber_id"])
+                barber = barber_map.get(barber_id_str)
                 barber_address = barber.get("address") if barber else None
 
                 # Format appointment date
@@ -90,7 +113,7 @@ async def send_hourly_reminders(notification_service: NotificationService, hour:
                     appointment_date = appointment_date.strftime("%d.%m.%Y")
 
                 success = await notification_service.send_reminder_notification(
-                    client_id=str(appt["client_id"]),
+                    client_id=client_id_str,
                     appointment_time=str(appt["appointment_time"]),
                     appointment_date=appointment_date,
                     barber_address=barber_address,
