@@ -1,6 +1,7 @@
 """Утилиты для работы с букингом и записями клиентов."""
 
 from typing import Dict, Any, Optional
+from datetime import date, datetime
 from src.enums import AppointmentStatus
 
 
@@ -15,11 +16,20 @@ def format_appointment_info(appointment: Dict[str, Any]) -> tuple[str, str]:
         Кортеж (время, дата) в строковом формате
     """
     time_str = appointment["appointment_time"]
-    date_str = (
-        appointment["appointment_date"].strftime("%d.%m.%Y")
-        if hasattr(appointment["appointment_date"], "strftime")
-        else str(appointment["appointment_date"])
-    )
+    appointment_date = appointment["appointment_date"]
+
+    # Handle datetime, date, and string types
+    if isinstance(appointment_date, datetime):
+        date_str = appointment_date.strftime("%d.%m.%Y")
+    elif isinstance(appointment_date, date):
+        date_str = appointment_date.strftime("%d.%m.%Y")
+    elif isinstance(appointment_date, str):
+        date_str = appointment_date
+    else:
+        raise ValueError(
+            f"Invalid date type: {type(appointment_date)}. Expected date, datetime, or str."
+        )
+
     return time_str, date_str
 
 

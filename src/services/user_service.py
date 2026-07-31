@@ -39,8 +39,7 @@ class UserService:
 
         # Validate and normalize phone
         if phone and not validate_phone(phone):
-            logger.warning(f"Invalid phone number: {phone}")
-            return None
+            raise ValueError(f"Invalid phone number format: {phone}")
 
         normalized_phone = normalize_phone(phone) if phone else None
 
@@ -83,6 +82,7 @@ class UserService:
         telegram_id: int,
         full_name: Optional[str] = None,
         phone: Optional[str] = None,
+        address: Optional[str] = None,
     ) -> bool:
         """Update user profile"""
         user = await self.get_user(telegram_id)
@@ -94,9 +94,10 @@ class UserService:
             update_data["full_name"] = full_name
         if phone:
             if not validate_phone(phone):
-                logger.warning(f"Invalid phone number: {phone}")
-                return False
+                raise ValueError(f"Invalid phone number format: {phone}")
             update_data["phone"] = normalize_phone(phone)
+        if address:
+            update_data["address"] = address
 
         return await self.user_repo.update_user(telegram_id, update_data)
 
@@ -149,7 +150,9 @@ class UserService:
     async def is_user_blocked(self, user_id: str) -> bool:
         """Check if user is blocked"""
         user = await self.user_repo.find_by_id(user_id)
-        return user and user.get("is_blocked", False) if user else False
+        if not user:
+            return False
+        return user.get("is_blocked", False)
 
     async def update_barber_services(
         self,

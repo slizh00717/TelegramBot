@@ -12,7 +12,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from src.services import UserService
 from src.enums import UserRole
-from src.utils import logger, validate_name, validate_phone
+from src.utils import logger, validate_name, validate_phone, normalize_phone
 
 router = Router()
 user_service = UserService()
@@ -121,7 +121,9 @@ async def process_phone(message: Message, state: FSMContext):
         )
         return
 
-    await state.update_data(phone=message.text)
+    # Normalize phone number
+    normalized_phone = normalize_phone(message.text)
+    await state.update_data(phone=normalized_phone)
 
     # Automatically determine role based on chat_id
     role = (
@@ -135,14 +137,19 @@ async def process_phone(message: Message, state: FSMContext):
     data = await state.get_data()
     referral_code = data.get("referral_code")
 
-    user_id = await user_service.register_user(
-        telegram_id=message.from_user.id,
-        full_name=data["full_name"],
-        role=role,
-        phone=message.text,
-        username=username,
-        referral_code_from=referral_code,
-    )
+    try:
+        user_id = await user_service.register_user(
+            telegram_id=message.from_user.id,
+            full_name=data["full_name"],
+            role=role,
+            phone=normalized_phone,
+            username=username,
+            referral_code_from=referral_code,
+        )
+    except ValueError as e:
+        await message.answer(f"❌ Ошибка регистрации: {str(e)}")
+        await state.clear()
+        return
 
     if user_id:
         user = await user_service.get_user(message.from_user.id)
@@ -150,7 +157,7 @@ async def process_phone(message: Message, state: FSMContext):
         await message.answer(
             f"✅ <b>Регистрация успешна!</b>\n\n"
             f"👤 Имя: {user['full_name']}\n"
-            f"📞 Телефон: {message.text}"
+            f"📞 Телефон: {normalized_phone}"
         )
 
         # Show menu with buttons

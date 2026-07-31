@@ -3,18 +3,7 @@ from datetime import datetime
 from typing import Optional
 from bson import ObjectId
 from src.enums import NotificationType
-
-
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if isinstance(v, ObjectId):
-            return v
-        return ObjectId(v)
+from src.models.base import PyObjectId
 
 
 class NotificationCreate(BaseModel):

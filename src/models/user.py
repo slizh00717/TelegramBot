@@ -3,24 +3,14 @@ from datetime import datetime
 from typing import Optional, Dict
 from bson import ObjectId
 from src.enums import UserRole
-
-
-class PyObjectId(ObjectId):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v):
-        if isinstance(v, ObjectId):
-            return v
-        return ObjectId(v)
+from src.models.base import PyObjectId
 
 
 class UserBase(BaseModel):
     telegram_id: int
     full_name: str
     phone: Optional[str] = None
+    address: Optional[str] = None
     role: UserRole
     is_active: bool = True
     is_subscribed: bool = True
@@ -34,11 +24,13 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
+    address: Optional[str] = None
     is_subscribed: Optional[bool] = None
 
 
 class UserBarberUpdate(BaseModel):
     barber_name: Optional[str] = None
+    address: Optional[str] = None
     description: Optional[str] = None
 
 

@@ -1,3 +1,4 @@
+from .base import PyObjectId
 from .user import UserCreate, UserUpdate, UserRead, UserBase, UserBarberUpdate
 from .schedule import (
     ScheduleCreate,

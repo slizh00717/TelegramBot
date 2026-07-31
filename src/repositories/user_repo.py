@@ -85,7 +85,7 @@ class UserRepository(BaseRepository):
         if not user:
             return False
 
-        self.collection.update_one(
+        await self.collection.update_one(
             {"_id": user["_id"]},
             {"$inc": {"visit_count": 1}, "$set": {"updated_at": datetime.utcnow()}},
         )
@@ -155,7 +155,7 @@ class UserRepository(BaseRepository):
         if not user:
             return False
 
-        self.collection.update_one(
+        await self.collection.update_one(
             {"_id": user["_id"]},
             {"$inc": {"referral_count": 1}, "$set": {"updated_at": datetime.utcnow()}},
         )

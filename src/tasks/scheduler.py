@@ -80,9 +80,20 @@ async def send_hourly_reminders(notification_service: NotificationService, hour:
 
             # Only send if this is the client's preferred reminder time
             if client_reminder_time == hour_str:
+                # Get barber info
+                barber = await user_repo.find_by_id(str(appt["barber_id"]))
+                barber_address = barber.get("address") if barber else None
+
+                # Format appointment date
+                appointment_date = appt.get("appointment_date")
+                if appointment_date:
+                    appointment_date = appointment_date.strftime("%d.%m.%Y")
+
                 success = await notification_service.send_reminder_notification(
                     client_id=str(appt["client_id"]),
                     appointment_time=str(appt["appointment_time"]),
+                    appointment_date=appointment_date,
+                    barber_address=barber_address,
                 )
 
                 if success:

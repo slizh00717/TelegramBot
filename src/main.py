@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 from aiogram import Dispatcher, Bot
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -21,22 +22,35 @@ async def main():
     logger.info("Starting Barber Bot...")
 
     # Initialize database
-    db = MongoDB.connect()
-    create_indexes(db)
-    logger.info("Database initialized")
+    try:
+        db = MongoDB.connect()
+        create_indexes(db)
+        logger.info("Database initialized")
+    except Exception as e:
+        logger.error(f"Failed to connect to database: {e}", exc_info=True)
+        sys.exit(1)
 
     # Initialize bot with new aiogram 3.7+ syntax
-    bot = Bot(
-        token=settings.telegram_bot_token,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-    )
+    try:
+        bot = Bot(
+            token=settings.telegram_bot_token,
+            default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        )
+    except Exception as e:
+        logger.error(f"Failed to initialize bot: {e}", exc_info=True)
+        sys.exit(1)
+
     dp = Dispatcher()
 
     # Set bot instance for notifications
     notification_service = NotificationService(bot)
 
     # Start scheduler for reminders
-    await BotScheduler.start(notification_service)
+    try:
+        await BotScheduler.start(notification_service)
+    except Exception as e:
+        logger.error(f"Failed to start scheduler: {e}", exc_info=True)
+        sys.exit(1)
 
     # Register routers
     dp.include_router(user_router)
@@ -47,6 +61,10 @@ async def main():
 
     try:
         await dp.start_polling(bot)
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Error in bot polling: {e}", exc_info=True)
     finally:
         BotScheduler.stop()
         await bot.session.close()

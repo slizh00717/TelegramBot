@@ -51,6 +51,7 @@ class ScheduleStates(StatesGroup):
 class BarberProfileEditStates(StatesGroup):
     editing_name = State()
     editing_phone = State()
+    editing_address = State()
 
 
 class BarberServiceStates(StatesGroup):
@@ -1517,8 +1518,13 @@ async def barber_profile_handler(callback: CallbackQuery):
             ],
             [
                 InlineKeyboardButton(
+                    text="📍 Адрес", callback_data="barber_edit_address"
+                ),
+                InlineKeyboardButton(
                     text="💰 Услуги", callback_data="barber_manage_services"
                 ),
+            ],
+            [
                 InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
             ],
         ]
@@ -1529,6 +1535,7 @@ async def barber_profile_handler(callback: CallbackQuery):
         f"👤 <b>Мой профиль</b>\n\n"
         f"Имя: {user['full_name']}\n"
         f"Телефон: {user.get('phone', 'Не указано')}\n"
+        f"Адрес: {user.get('address', 'Не указано')}\n"
         f"Завершено услуг: {completed}",
         reply_markup=keyboard,
     )
@@ -1689,6 +1696,89 @@ async def barber_edit_phone_process(message: Message, state: FSMContext):
     else:
         await message.answer(
             "❌ Ошибка при обновлении номера телефона. Попробуй ещё раз."
+        )
+
+    await state.clear()
+
+
+@router.callback_query(F.data == "barber_edit_address")
+@require_role(UserRole.BARBER)
+async def barber_edit_address_start(callback: CallbackQuery, state: FSMContext):
+    """Start editing barber address"""
+    user = await user_service.get_user(callback.from_user.id)
+
+    await callback.message.edit_text(
+        f"📍 Текущий адрес: <b>{user.get('address', 'Не указано')}</b>\n\n"
+        "Введи адрес своего барбершопа:"
+    )
+    await state.set_state(BarberProfileEditStates.editing_address)
+
+
+@router.message(BarberProfileEditStates.editing_address, F.text)
+@require_role(UserRole.BARBER)
+async def barber_edit_address_process(message: Message, state: FSMContext):
+    """Process new barber address"""
+    if len(message.text) < 3:
+        await message.answer("❌ Адрес должен быть не менее 3 символов. Попробуй ещё раз:")
+        return
+
+    success = await user_service.update_user_profile(
+        telegram_id=message.from_user.id, address=message.text
+    )
+
+    if success:
+        await message.answer(
+            f"✅ <b>Адрес обновлен!</b>\n\n"
+            f"Новый адрес: <b>{message.text}</b>"
+        )
+
+        user = await user_service.get_user(message.from_user.id)
+        appointments = await appointment_service.get_barber_appointments(
+            str(user["_id"])
+        )
+
+        from src.enums import AppointmentStatus
+
+        completed = len(
+            [
+                a
+                for a in appointments
+                if a.get("status") == AppointmentStatus.COMPLETED.value
+            ]
+        )
+
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✏️ Изменить имя", callback_data="barber_edit_name"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="✏️ Изменить телефон", callback_data="barber_edit_phone"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="📍 Изменить адрес", callback_data="barber_edit_address"
+                    )
+                ],
+                [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")],
+            ]
+        )
+
+        await message.answer(
+            f"👤 <b>Мой профиль</b>\n\n"
+            f"Имя: {user['full_name']}\n"
+            f"Телефон: {user.get('phone', 'Не указано')}\n"
+            f"Адрес: {user.get('address', 'Не указано')}\n"
+            f"Завершено услуг: {completed}",
+            reply_markup=keyboard,
+        )
+    else:
+        await message.answer(
+            "❌ Ошибка при обновлении адреса. Попробуй ещё раз."
         )
 
     await state.clear()

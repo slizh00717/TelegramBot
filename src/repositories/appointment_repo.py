@@ -1,5 +1,5 @@
-from typing import List, Dict, Any, Optional
-from datetime import datetime, date
+from typing import List, Dict, Any, Optional, Union
+from datetime import datetime, date, time
 from bson import ObjectId
 from src.repositories.base import BaseRepository
 from src.enums import AppointmentStatus
@@ -9,6 +9,18 @@ class AppointmentRepository(BaseRepository):
     def __init__(self):
         super().__init__("appointments")
 
+    @staticmethod
+    def _format_time_to_string(appointment_time: Union[time, str]) -> str:
+        """Convert time object or string to HH:MM format"""
+        if isinstance(appointment_time, time):
+            return appointment_time.strftime("%H:%M")
+        elif isinstance(appointment_time, str):
+            return appointment_time
+        else:
+            raise ValueError(
+                f"Invalid time type: {type(appointment_time)}. Expected time or str."
+            )
+
     async def create_appointment(
         self,
         time_slot_id: str,
@@ -17,7 +29,7 @@ class AppointmentRepository(BaseRepository):
         client_phone: str,
         client_name: str,
         appointment_date: date,
-        appointment_time,
+        appointment_time: Union[time, str],
         service_type: str = "haircut",
     ) -> str:
         """Create a new appointment"""
@@ -25,11 +37,7 @@ class AppointmentRepository(BaseRepository):
         date_dt = datetime.combine(appointment_date, datetime.min.time())
 
         # Convert time to string if needed
-        time_str = (
-            appointment_time.strftime("%H:%M")
-            if hasattr(appointment_time, "strftime")
-            else str(appointment_time)
-        )
+        time_str = self._format_time_to_string(appointment_time)
 
         appointment_data = {
             "time_slot_id": ObjectId(time_slot_id),

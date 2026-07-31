@@ -6,6 +6,7 @@ from src.repositories import AppointmentRepository, TimeSlotRepository, UserRepo
 from src.enums import AppointmentStatus
 from src.utils import logger, get_timezone
 from src.config import settings
+from src.database import get_mongo_client
 
 
 class AppointmentService:
@@ -51,21 +52,19 @@ class AppointmentService:
         tz = get_timezone()
         start_time_utc = time_slot["start_time"]
 
-        logger.info(
-            f"Original start_time from slot: {start_time_utc}, tzinfo: {start_time_utc.tzinfo}"
-        )
+        try:
+            # Handle timezone-naive datetime from MongoDB
+            if start_time_utc.tzinfo is None:
+                start_time_utc = start_time_utc.replace(tzinfo=pytz.utc)
+            elif start_time_utc.tzinfo != pytz.utc:
+                # Already has timezone info, convert to UTC first
+                start_time_utc = start_time_utc.astimezone(pytz.utc)
 
-        # If datetime is timezone-naive (from MongoDB), assume it's UTC
-        if start_time_utc.tzinfo is None:
-            start_time_utc = pytz.utc.localize(start_time_utc)
-
-        logger.info(f"After UTC localize: {start_time_utc}")
-
-        # Convert to local timezone
-        start_time_local = start_time_utc.astimezone(tz)
-
-        logger.info(f"After convert to local: {start_time_local}")
-        logger.info(f"Local time only: {start_time_local.time()}")
+            # Convert to local timezone
+            start_time_local = start_time_utc.astimezone(tz)
+        except Exception as e:
+            logger.error(f"Timezone conversion error: {e}", exc_info=True)
+            raise ValueError(f"Invalid datetime format in time slot: {start_time_utc}")
 
         # Create appointment with service type
         appointment_id = await self.appointment_repo.create_appointment(
@@ -161,6 +160,7 @@ class AppointmentService:
     async def complete_appointment(self, appointment_id: str) -> bool:
         """
         Mark appointment as completed and award referral bonus if applicable.
+        Uses MongoDB transaction to ensure atomicity of bonus award operation.
 
         Args:
             appointment_id: ID of the appointment
@@ -168,47 +168,75 @@ class AppointmentService:
         Returns:
             True if successful, False otherwise
         """
-        # Get appointment
-        appointment = await self.appointment_repo.find_by_id(appointment_id)
-        if not appointment:
-            logger.warning(f"Appointment {appointment_id} not found")
-            return False
+        try:
+            # Get appointment
+            appointment = await self.appointment_repo.find_by_id(appointment_id)
+            if not appointment:
+                logger.warning(f"Appointment {appointment_id} not found")
+                return False
 
-        # Mark as completed
-        result = await self.appointment_repo.update(
-            appointment_id,
-            {
-                "status": AppointmentStatus.COMPLETED.value,
-                "completed_at": datetime.utcnow(),
-            },
-        )
+            # Mark as completed
+            result = await self.appointment_repo.update(
+                appointment_id,
+                {
+                    "status": AppointmentStatus.COMPLETED.value,
+                    "completed_at": datetime.utcnow(),
+                },
+            )
 
-        if not result:
-            return False
+            if not result:
+                return False
 
-        # Check if client has a referrer (early exit if not)
-        client_id = str(appointment["client_id"])
-        client = await self.user_repo.find_by_id(client_id)
+            # Check if client has a referrer (early exit if not)
+            client_id = str(appointment["client_id"])
+            client = await self.user_repo.find_by_id(client_id)
 
-        if not client or not client.get("referred_by"):
-            return True
+            if not client or not client.get("referred_by"):
+                return True
 
-        # Check if this is the first completed appointment (using count for efficiency)
-        completed_count = await self.appointment_repo.collection.count_documents(
-            {
-                "client_id": ObjectId(client_id),
-                "status": AppointmentStatus.COMPLETED.value,
-            }
-        )
-
-        # Award bonus only for first completed appointment
-        if completed_count == 1:
+            # Use MongoDB transaction for atomic bonus award operation
             referrer_id = client.get("referred_by")
             bonus_points = settings.referral_bonus_points
-            success = await self.user_repo.add_bonus_balance(referrer_id, bonus_points)
-            if success:
-                logger.info(
-                    f"Awarded {bonus_points} bonus points to {referrer_id} for first referral completion"
-                )
 
-        return True
+            # Get MongoDB client for transaction
+            mongo_client = get_mongo_client()
+            db = self.appointment_repo.db
+
+            # Start transaction session for atomic operation
+            async with await mongo_client.start_session() as session:
+                async with session.start_transaction():
+                    # Atomically check and award bonus within transaction
+                    # Count completed appointments created BEFORE this one
+                    completed_count = await db.appointments.count_documents(
+                        {
+                            "client_id": ObjectId(client_id),
+                            "status": AppointmentStatus.COMPLETED.value,
+                            "created_at": {"$lt": appointment.get("created_at")},
+                        },
+                        session=session,
+                    )
+
+                    # If this is the first completion, award bonus atomically
+                    if completed_count == 0:
+                        # Update referrer's bonus balance atomically
+                        update_result = await db.users.update_one(
+                            {"_id": ObjectId(referrer_id)},
+                            {
+                                "$inc": {"bonus_balance": bonus_points},
+                                "$set": {"updated_at": datetime.utcnow()},
+                            },
+                            session=session,
+                        )
+
+                        if update_result.modified_count > 0:
+                            logger.info(
+                                f"Awarded {bonus_points} bonus points to {referrer_id} "
+                                f"for first referral completion (appointment {appointment_id})"
+                            )
+
+            return True
+        except Exception as e:
+            logger.error(
+                f"Error completing appointment {appointment_id}: {e}", exc_info=True
+            )
+            return False

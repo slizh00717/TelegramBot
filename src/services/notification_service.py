@@ -190,17 +190,21 @@ class NotificationService:
         self,
         client_id: str,
         appointment_time: str,
+        appointment_date: Optional[str] = None,
         barber_address: Optional[str] = None,
     ) -> bool:
         """Send reminder notification to client"""
-        message = (
-            f"<b>⏰ Напоминание о вашей записи</b>\n\n"
-            f"🕐 Время: {appointment_time}\n"
-        )
+        message = "<b>⏰ Напоминание о вашей записи</b>\n\n"
+
+        if appointment_date:
+            message += f"📅 Дата: {appointment_date}\n"
+
+        message += f"🕐 Время: {appointment_time}\n"
+
         if barber_address:
             message += f"📍 Адрес: {barber_address}\n"
 
-        message += f"\nДо свидания! ✂️"
+        message += f"\nДо встречи! ✂️"
 
         return await self.notify_user(
             user_id=client_id,
