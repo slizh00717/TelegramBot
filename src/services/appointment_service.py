@@ -24,7 +24,7 @@ class AppointmentService:
         Args:
             slot: Either a slot ID (string) or a slot object (dict)
             client_id: ID of the client
-            service_type: Type of service ("haircut" or "haircut_and_beard")
+            service_type: Type of service ("haircut", "beard_trim", or "haircut_and_beard")
 
         Returns:
             Created appointment or None if booking failed
