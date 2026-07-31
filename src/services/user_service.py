@@ -5,8 +5,19 @@ from src.utils import logger, validate_phone, normalize_phone
 
 
 class UserService:
-    def __init__(self):
-        self.user_repo = UserRepository()
+    """Service layer for user-related operations.
+
+    Provides business logic for user registration, profile management, role checking,
+    referral tracking, and bonus balance management. Coordinates between handlers
+    and the UserRepository.
+
+    Attributes:
+        user_repo: UserRepository instance for database operations
+    """
+
+    def __init__(self) -> None:
+        """Initialize UserService with UserRepository."""
+        self.user_repo: UserRepository = UserRepository()
 
     async def register_user(
         self,
@@ -74,7 +85,14 @@ class UserService:
         return user_id
 
     async def get_user(self, telegram_id: int) -> Optional[Dict[str, Any]]:
-        """Get user by Telegram ID"""
+        """Get user by Telegram ID.
+
+        Args:
+            telegram_id: Telegram user ID
+
+        Returns:
+            User document or None if not found
+        """
         return await self.user_repo.find_by_telegram_id(telegram_id)
 
     async def update_user_profile(
@@ -84,7 +102,22 @@ class UserService:
         phone: Optional[str] = None,
         address: Optional[str] = None,
     ) -> bool:
-        """Update user profile"""
+        """Update user profile with partial updates.
+
+        Only non-None fields are updated. Validates phone format if provided.
+
+        Args:
+            telegram_id: Telegram user ID
+            full_name: New full name (optional)
+            phone: New phone number (optional, validated)
+            address: New address (optional)
+
+        Returns:
+            True if update succeeded, False if user not found
+
+        Raises:
+            ValueError: If phone format is invalid
+        """
         user = await self.get_user(telegram_id)
         if not user:
             return False
@@ -102,11 +135,25 @@ class UserService:
         return await self.user_repo.update_user(telegram_id, update_data)
 
     async def subscribe_to_notifications(self, telegram_id: int) -> bool:
-        """Subscribe user to notifications"""
+        """Subscribe user to notifications.
+
+        Args:
+            telegram_id: Telegram user ID
+
+        Returns:
+            True if subscription updated, False if user not found
+        """
         return await self.user_repo.subscribe_user(telegram_id)
 
     async def unsubscribe_from_notifications(self, telegram_id: int) -> bool:
-        """Unsubscribe user from notifications"""
+        """Unsubscribe user from notifications.
+
+        Args:
+            telegram_id: Telegram user ID
+
+        Returns:
+            True if subscription updated, False if user not found
+        """
         return await self.user_repo.unsubscribe_user(telegram_id)
 
     async def get_all_subscribed_clients(self) -> list[Dict[str, Any]]:
