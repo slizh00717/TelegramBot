@@ -875,64 +875,13 @@ async def barber_select_date_handler(callback: CallbackQuery, state: FSMContext)
         return
 
     # Generate slots for the selected service
+    # (slots are already filtered for availability by ScheduleService)
     schedule_service_inst = ScheduleService()
     slots = await schedule_service_inst.get_available_slots_for_service(
         str(schedule["barber_id"]), date_obj, service_type
     )
 
-    # Filter out slots that are already booked
-    appointment_repo = AppointmentRepository()
-    booked_appointments = await appointment_repo.find_by_barber_and_date(
-        str(schedule["barber_id"]), date_obj
-    )
-
-    # Get service durations for calculating appointment end times
-    def get_duration_for_service(service_type: str) -> int:
-        """Get duration in minutes for a service type"""
-        if service_type == "haircut_and_beard":
-            return schedule.get("haircut_and_beard_duration_minutes", 90)
-        elif service_type == "beard_trim":
-            return schedule.get("beard_trim_duration_minutes", 30)
-        else:  # haircut
-            return schedule.get("haircut_duration_minutes", 60)
-
-    # Create a list of booked time ranges with end times
-    tz = get_timezone()
-    booked_ranges = []
-    for appt in booked_appointments:
-        # Only consider BOOKED appointments, skip cancelled ones
-        if appt.get("status") != "booked":
-            continue
-
-        appt_time_str = appt["appointment_time"]
-        # Parse appointment time (format: "HH:MM")
-        appt_hour, appt_min = map(int, appt_time_str.split(":"))
-        appt_start = datetime.combine(date_obj, time(hour=appt_hour, minute=appt_min))
-        appt_start = tz.localize(appt_start)  # Make timezone-aware
-
-        # Get service type and calculate duration
-        service_type = appt.get("service_type", "haircut")
-        duration = get_duration_for_service(service_type)
-        appt_end = appt_start + timedelta(minutes=duration)
-
-        booked_ranges.append((appt_start, appt_end))
-
-    # Filter slots - keep only those that don't overlap with booked appointments
-    available_slots = []
-    for slot in slots:
-        slot_start = slot["start_time"]
-        slot_end = slot["end_time"]
-
-        # Check if this slot overlaps with any booked appointment
-        is_available = True
-        for booked_start, booked_end in booked_ranges:
-            # Slots overlap if: slot_start < booked_end AND slot_end > booked_start
-            if slot_start < booked_end and slot_end > booked_start:
-                is_available = False
-                break
-
-        if is_available:
-            available_slots.append(slot)
+    available_slots = slots
 
     if not available_slots:
         keyboard = InlineKeyboardMarkup(

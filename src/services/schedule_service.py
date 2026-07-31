@@ -121,14 +121,7 @@ class ScheduleService:
 
         duration = schedule.get(duration_key, default_duration)
 
-        # Generate available slots
-        slots = await self._generate_available_slots(
-            schedule,
-            duration,
-            service_type,
-        )
-
-        # Filter out slots that overlap with booked appointments
+        # Get all booked appointments for this barber on this date
         appointment_repo = AppointmentRepository()
         booked_appointments = await appointment_repo.find_by_barber_and_date(
             barber_id, date_obj
@@ -144,7 +137,7 @@ class ScheduleService:
             else:  # haircut
                 return schedule.get("haircut_duration_minutes", 60)
 
-        # Create a list of booked time ranges with end times
+        # Create a sorted list of booked time ranges
         tz = get_timezone()
         booked_ranges = []
         for appt in booked_appointments:
@@ -167,41 +160,13 @@ class ScheduleService:
 
             booked_ranges.append((appt_start, appt_end))
 
-        # Filter slots - keep only those that don't overlap with booked appointments
-        available_slots = []
-        for slot in slots:
-            slot_start = slot["start_time"]
-            slot_end = slot["end_time"]
+        # Sort booked ranges by start time
+        booked_ranges.sort(key=lambda x: x[0])
 
-            # Check if this slot overlaps with any booked appointment
-            is_available = True
-            for booked_start, booked_end in booked_ranges:
-                # Slots overlap if: slot_start < booked_end AND slot_end > booked_start
-                if slot_start < booked_end and slot_end > booked_start:
-                    is_available = False
-                    break
-
-            if is_available:
-                available_slots.append(slot)
-
-        return available_slots
-
-    async def _generate_available_slots(
-        self, schedule: Dict[str, Any], duration_minutes: int, service_type: str
-    ) -> List[Dict[str, Any]]:
-        """Generate available slots for a service based on schedule"""
-        tz = get_timezone()
-
-        # Parse start and end times from schedule
-        date_obj = (
-            schedule["date"].date()
-            if hasattr(schedule["date"], "date")
-            else schedule["date"]
-        )
+        # Parse schedule times
         start_time = schedule["start_time"]
         end_time = schedule["end_time"]
 
-        # Parse time strings if needed
         if isinstance(start_time, str):
             start_hour, start_min = map(int, start_time.split(":"))
             start_time = time(hour=start_hour, minute=start_min)
@@ -209,34 +174,64 @@ class ScheduleService:
             end_hour, end_min = map(int, end_time.split(":"))
             end_time = time(hour=end_hour, minute=end_min)
 
-        # Create datetime objects
-        current_time = datetime.combine(date_obj, start_time)
-        current_time = tz.localize(current_time)
-        end_datetime = datetime.combine(date_obj, end_time)
-        end_datetime = tz.localize(end_datetime)
+        # Create datetime objects for schedule
+        work_start = datetime.combine(date_obj, start_time)
+        work_start = tz.localize(work_start)
+        work_end = datetime.combine(date_obj, end_time)
+        work_end = tz.localize(work_end)
 
-        slots = []
-        # Generate slots with 30-minute intervals to handle service durations properly
-        # (e.g., a 90-minute appointment ending at 11:30 allows next 60-min slot at 11:30)
-        interval_minutes = 30
-        while current_time < end_datetime:
-            slot_end = current_time + timedelta(minutes=duration_minutes)
+        # Generate slots in free windows between booked appointments
+        available_slots = []
 
-            if slot_end > end_datetime:
-                break
+        if not booked_ranges:
+            # No bookings - generate slots from work start to end
+            current_time = work_start
+            while current_time + timedelta(minutes=duration) <= work_end:
+                slot = {
+                    "_id": str(schedule["_id"]),
+                    "start_time": current_time,
+                    "end_time": current_time + timedelta(minutes=duration),
+                    "barber_id": schedule["barber_id"],
+                    "service_type": service_type,
+                    "status": "available",
+                }
+                available_slots.append(slot)
+                current_time = current_time + timedelta(minutes=duration)
+        else:
+            # Generate slots in gaps between bookings
+            current_time = work_start
 
-            slot = {
-                "_id": str(schedule["_id"]),  # Use schedule ID as reference
-                "start_time": current_time,
-                "end_time": slot_end,
-                "barber_id": schedule["barber_id"],
-                "service_type": service_type,
-                "status": "available",
-            }
-            slots.append(slot)
-            current_time = current_time + timedelta(minutes=interval_minutes)
+            for booked_start, booked_end in booked_ranges:
+                # Generate slots in the gap before this booking
+                while current_time + timedelta(minutes=duration) <= booked_start:
+                    slot = {
+                        "_id": str(schedule["_id"]),
+                        "start_time": current_time,
+                        "end_time": current_time + timedelta(minutes=duration),
+                        "barber_id": schedule["barber_id"],
+                        "service_type": service_type,
+                        "status": "available",
+                    }
+                    available_slots.append(slot)
+                    current_time = current_time + timedelta(minutes=duration)
 
-        return slots
+                # Move past this booking
+                current_time = booked_end
+
+            # Generate slots after the last booking until work end
+            while current_time + timedelta(minutes=duration) <= work_end:
+                slot = {
+                    "_id": str(schedule["_id"]),
+                    "start_time": current_time,
+                    "end_time": current_time + timedelta(minutes=duration),
+                    "barber_id": schedule["barber_id"],
+                    "service_type": service_type,
+                    "status": "available",
+                }
+                available_slots.append(slot)
+                current_time = current_time + timedelta(minutes=duration)
+
+        return available_slots
 
     async def get_available_slots_for_barber(
         self, barber_id: str, date_obj: date
