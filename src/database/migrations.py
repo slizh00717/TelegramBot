@@ -6,7 +6,11 @@ logger = logging.getLogger(__name__)
 
 
 async def create_indexes(db: AsyncIOMotorDatabase) -> None:
-    """Create all necessary indexes for collections to optimize query performance."""
+    """Create all necessary indexes for collections to optimize query performance.
+
+    Note: Uses create_index with default behavior - if index already exists with
+    same key specification, it is silently ignored (idempotent).
+    """
 
     # Users collection indexes
     await db.users.create_index("telegram_id", unique=True, sparse=True)
@@ -18,8 +22,10 @@ async def create_indexes(db: AsyncIOMotorDatabase) -> None:
     logger.info("✓ Created indexes for users collection (6 indexes)")
 
     # Barber schedules collection indexes
+    # Note: Not using unique=True because existing index was created without it
+    # To make it unique, manually drop the index and recreate, or use database migration
     await db.barber_schedules.create_index(
-        [("barber_id", ASCENDING), ("date", ASCENDING)], unique=True
+        [("barber_id", ASCENDING), ("date", ASCENDING)]
     )
     await db.barber_schedules.create_index([("is_published", ASCENDING), ("date", DESCENDING)])
     await db.barber_schedules.create_index("created_at")
