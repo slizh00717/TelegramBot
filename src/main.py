@@ -24,7 +24,7 @@ async def main():
     # Initialize database
     try:
         db = MongoDB.connect()
-        create_indexes(db)
+        await create_indexes(db)
         logger.info("Database initialized")
     except Exception as e:
         logger.error(f"Failed to connect to database: {e}", exc_info=True)
