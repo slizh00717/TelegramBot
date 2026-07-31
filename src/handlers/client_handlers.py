@@ -98,6 +98,12 @@ async def book_appointment_handler(callback: CallbackQuery, state: FSMContext):
             ],
             [
                 InlineKeyboardButton(
+                    text="💈 Стрижка бороды",
+                    callback_data="select_service_beard_trim",
+                )
+            ],
+            [
+                InlineKeyboardButton(
                     text="✂️💈 Стрижка + Борода",
                     callback_data="select_service_haircut_and_beard",
                 )
@@ -110,6 +116,7 @@ async def book_appointment_handler(callback: CallbackQuery, state: FSMContext):
         await callback.message.edit_text(
             "🪒 <b>Выбери услугу</b>\n\n"
             "✂️ <b>Стрижка</b> - классическая стрижка\n"
+            "💈 <b>Стрижка бороды</b> - уход за бородой\n"
             "✂️💈 <b>Стрижка + Борода</b> - полный уход",
             reply_markup=keyboard,
         )
