@@ -13,9 +13,7 @@ class Settings(BaseSettings):
 
     # Telegram
     telegram_bot_token: str
-    telegram_bot_username: str = (
-        "YourBotUsername"  # Username бота без @, например: barber_booking_bot
-    )
+    telegram_bot_username: str = "YourBotUsername"  # Username бота без @, например: barber_booking_bot
     barber_chat_id: int  # ID чата барбера для уведомлений о новых записях
 
     # MongoDB
@@ -29,9 +27,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     # Referral program
-    referral_bonus_points: int = (
-        50  # Бонусные баллы за первый приём приглашённого клиента
-    )
+    referral_bonus_points: int = 50  # Бонусные баллы за первый приём приглашённого клиента
 
     class Config:
         case_sensitive = False

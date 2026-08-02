@@ -31,15 +31,12 @@ ignore = [
     "E501",  # Line length handled by formatter
     "E741",  # Ambiguous variable name
 ]
+isort = { known-first-party = ["src"], force-single-line = false }
 
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
-
-[tool.ruff.isort]
-known-first-party = ["src"]
-force-single-line = false
 
 [tool.mypy]
 python_version = "3.12"

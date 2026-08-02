@@ -25,9 +25,7 @@ def format_appointment_info(appointment: dict[str, Any]) -> tuple[str, str]:
     elif isinstance(appointment_date, str):
         date_str = appointment_date
     else:
-        raise ValueError(
-            f"Invalid date type: {type(appointment_date)}. Expected date, datetime, or str."
-        )
+        raise ValueError(f"Invalid date type: {type(appointment_date)}. Expected date, datetime, or str.")
 
     return time_str, date_str
 
@@ -105,9 +103,4 @@ def build_appointment_message(
             f"🕐 Время: {time_str}"
         )
     else:
-        return (
-            f"<b>✂️ Запись подтверждена</b>\n\n"
-            f"👤 Клиент: {client_name}\n"
-            f"📅 Дата: {date_str}\n"
-            f"🕐 Время: {time_str}"
-        )
+        return f"<b>✂️ Запись подтверждена</b>\n\n👤 Клиент: {client_name}\n📅 Дата: {date_str}\n🕐 Время: {time_str}"

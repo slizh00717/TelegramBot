@@ -43,24 +43,16 @@ def get_client_profile_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="✏️ Имя", callback_data="client_edit_name"),
-                InlineKeyboardButton(
-                    text="✏️ Телефон", callback_data="client_edit_phone"
-                ),
+                InlineKeyboardButton(text="✏️ Телефон", callback_data="client_edit_phone"),
             ],
             [
-                InlineKeyboardButton(
-                    text="⏰ Напоминание", callback_data="client_edit_reminder"
-                ),
+                InlineKeyboardButton(text="⏰ Напоминание", callback_data="client_edit_reminder"),
             ],
             [
-                InlineKeyboardButton(
-                    text="🎁 Пригласить", callback_data="client_invite_friend"
-                ),
+                InlineKeyboardButton(text="🎁 Пригласить", callback_data="client_invite_friend"),
             ],
             [
-                InlineKeyboardButton(
-                    text="🗑️ Удалить", callback_data="client_delete_account"
-                ),
+                InlineKeyboardButton(text="🗑️ Удалить", callback_data="client_delete_account"),
                 InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
             ],
         ]
@@ -142,45 +134,32 @@ async def select_service_handler(callback: CallbackQuery, state: FSMContext):
 
     if not schedules:
         await callback.message.edit_text(
-            "📅 <b>Записаться</b>\n\n"
-            "😔 К сожалению, нет доступных расписаний. "
-            "Попробуй позже или свяжись с барбером"
+            "📅 <b>Записаться</b>\n\n😔 К сожалению, нет доступных расписаний. Попробуй позже или свяжись с барбером"
         )
         await state.clear()
         return
 
     # Show available dates
     text = (
-        "📅 <b>Выбери дату</b>\n\n"
-        f"Услуга: <b>{'Стрижка' if service_type == 'haircut' else 'Стрижка + Борода'}</b>\n\n"
+        f"📅 <b>Выбери дату</b>\n\nУслуга: <b>{'Стрижка' if service_type == 'haircut' else 'Стрижка + Борода'}</b>\n\n"
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[])
 
     dates = set()
     for schedule in schedules:
-        schedule_date = (
-            schedule["date"].date()
-            if hasattr(schedule["date"], "date")
-            else schedule["date"]
-        )
+        schedule_date = schedule["date"].date() if hasattr(schedule["date"], "date") else schedule["date"]
         if schedule_date >= get_today():
             dates.add(schedule_date)
 
     for date_obj in sorted(dates)[:10]:
         date_str = date_obj.strftime("%d.%m.%Y")
         keyboard.inline_keyboard.append(
-            [
-                InlineKeyboardButton(
-                    text=date_str, callback_data=f"select_date_{date_obj.isoformat()}"
-                )
-            ]
+            [InlineKeyboardButton(text=date_str, callback_data=f"select_date_{date_obj.isoformat()}")]
         )
 
     keyboard.inline_keyboard.append(
         [
-            InlineKeyboardButton(
-                text="⬅️ Назад", callback_data="client_book_appointment"
-            ),
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="client_book_appointment"),
             InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu"),
         ]
     )
@@ -215,25 +194,18 @@ async def select_date_handler(callback: CallbackQuery, state: FSMContext):
     barber_info = {}
 
     for schedule in schedules:
-        schedule_date = (
-            schedule["date"].date()
-            if hasattr(schedule["date"], "date")
-            else schedule["date"]
-        )
+        schedule_date = schedule["date"].date() if hasattr(schedule["date"], "date") else schedule["date"]
 
         if schedule_date == date_obj:
             barber_id = str(schedule["barber_id"])
-            slots = await schedule_service.get_available_slots_for_service(
-                barber_id, date_obj, service_type
-            )
+            slots = await schedule_service.get_available_slots_for_service(barber_id, date_obj, service_type)
             all_slots.extend(slots)
             barber_info[barber_id] = schedule
 
     if not all_slots:
         try:
             await callback.message.edit_text(
-                f"📅 Выбранная дата: <b>{date_obj.strftime('%d.%m.%Y')}</b>\n\n"
-                "😔 На эту дату нет свободных мест"
+                f"📅 Выбранная дата: <b>{date_obj.strftime('%d.%m.%Y')}</b>\n\n😔 На эту дату нет свободных мест"
             )
         except TelegramBadRequest as e:
             if "message is not modified" not in str(e):
@@ -266,25 +238,15 @@ async def select_date_handler(callback: CallbackQuery, state: FSMContext):
 
         added_times.add(time_str)
         slot_mapping[button_idx] = slot
-        keyboard.inline_keyboard.append(
-            [
-                InlineKeyboardButton(
-                    text=time_str, callback_data=f"book_slot_{button_idx}"
-                )
-            ]
-        )
+        keyboard.inline_keyboard.append([InlineKeyboardButton(text=time_str, callback_data=f"book_slot_{button_idx}")])
         button_idx += 1
 
     # Save slot mapping and service type to state
-    await state.update_data(
-        slot_mapping=slot_mapping, booking_date=date_obj, booking_service=service_type
-    )
+    await state.update_data(slot_mapping=slot_mapping, booking_date=date_obj, booking_service=service_type)
 
     keyboard.inline_keyboard.append(
         [
-            InlineKeyboardButton(
-                text="⬅️ Назад", callback_data="client_book_appointment"
-            ),
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="client_book_appointment"),
         ]
     )
 
@@ -321,14 +283,11 @@ async def confirm_booking_handler(callback: CallbackQuery, state: FSMContext):
     barber = await user_service.user_repo.find_by_id(barber_id)
 
     # Book appointment with service type
-    appointment = await appointment_service.book_appointment(
-        slot, str(user["_id"]), service_type=service_type
-    )
+    appointment = await appointment_service.book_appointment(slot, str(user["_id"]), service_type=service_type)
 
     if not appointment:
         await callback.message.edit_text(
-            "❌ Ошибка при бронировании. Место может быть уже занято. "
-            "Попробуй другое время."
+            "❌ Ошибка при бронировании. Место может быть уже занято. Попробуй другое время."
         )
         return
 
@@ -369,9 +328,7 @@ async def confirm_booking_handler(callback: CallbackQuery, state: FSMContext):
     except Exception as e:
         logger.warning(f"Could not send booking notification to barber: {e}")
 
-    logger.info(
-        f"Client {callback.from_user.id} booked appointment {appointment['_id']} for service {service_type}"
-    )
+    logger.info(f"Client {callback.from_user.id} booked appointment {appointment['_id']} for service {service_type}")
 
     await state.clear()
 
@@ -384,9 +341,7 @@ async def view_client_appointments(callback: CallbackQuery):
     appointments = await appointment_service.get_client_appointments(str(user["_id"]))
 
     if not appointments:
-        await callback.message.edit_text(
-            "📅 <b>Мои записи</b>\n\n" "У тебя нет записей"
-        )
+        await callback.message.edit_text("📅 <b>Мои записи</b>\n\nУ тебя нет записей")
         return
 
     # Group by status
@@ -438,9 +393,7 @@ async def view_client_appointments(callback: CallbackQuery):
             text += f"  {date_str} в {time_str}\n"
 
     # Add menu button at the end
-    keyboard_buttons.append(
-        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")]
-    )
+    keyboard_buttons.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")])
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
     await callback.message.edit_text(text, reply_markup=keyboard)
@@ -459,14 +412,10 @@ async def cancel_appointment_handler(callback: CallbackQuery):
     )
 
     if result:
-        await callback.message.edit_text(
-            "✅ <b>Запись отменена</b>\n\n" "Барбер получил уведомление об отмене"
-        )
+        await callback.message.edit_text("✅ <b>Запись отменена</b>\n\nБарбер получил уведомление об отмене")
 
         # Notify barber
-        appointment = await appointment_service.appointment_repo.find_by_id(
-            appointment_id
-        )
+        appointment = await appointment_service.appointment_repo.find_by_id(appointment_id)
         if appointment:
             user = await user_service.get_user(callback.from_user.id)
             notification_service = NotificationService(callback.bot)
@@ -528,15 +477,11 @@ async def client_view_price(callback: CallbackQuery):
     barbers = await user_service.get_barbers()
 
     if not barbers:
-        await callback.message.edit_text(
-            "💰 <b>Прайс</b>\n\n" "К сожалению, цены пока не установлены."
-        )
+        await callback.message.edit_text("💰 <b>Прайс</b>\n\nК сожалению, цены пока не установлены.")
         return
 
     keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")]]
     )
 
     # Build price list from all barbers
@@ -554,11 +499,7 @@ async def client_view_price(callback: CallbackQuery):
         haircut_and_beard = services.get("haircut_and_beard")
 
         # Check if at least one service is set
-        has_prices = (
-            haircut is not None
-            or beard_trim is not None
-            or haircut_and_beard is not None
-        )
+        has_prices = haircut is not None or beard_trim is not None or haircut_and_beard is not None
 
         if has_prices:
             price_text += f"<b>{barber_name}</b>\n"
@@ -590,9 +531,7 @@ async def client_view_price(callback: CallbackQuery):
                         # If naive datetime, assume UTC
                         updated_at = pytz.UTC.localize(updated_at)
                     local_time = updated_at.astimezone(tz)
-                    price_text += (
-                        f"<i>Обновлено: {local_time.strftime('%d.%m.%Y %H:%M')}</i>\n"
-                    )
+                    price_text += f"<i>Обновлено: {local_time.strftime('%d.%m.%Y %H:%M')}</i>\n"
 
             price_text += "\n"
         else:
@@ -607,9 +546,7 @@ async def client_edit_name_start(callback: CallbackQuery, state: FSMContext):
     """Start editing client name"""
     user = await user_service.get_user(callback.from_user.id)
 
-    await callback.message.edit_text(
-        f"👤 Текущее имя: <b>{user['full_name']}</b>\n\n" "Введи новое имя:"
-    )
+    await callback.message.edit_text(f"👤 Текущее имя: <b>{user['full_name']}</b>\n\nВведи новое имя:")
     await state.set_state(ProfileEditStates.editing_name)
 
 
@@ -621,14 +558,10 @@ async def client_edit_name_process(message: Message, state: FSMContext):
         await message.answer("❌ Имя должно быть минимум 2 символа. Попробуй ещё раз:")
         return
 
-    success = await user_service.update_user_profile(
-        telegram_id=message.from_user.id, full_name=message.text
-    )
+    success = await user_service.update_user_profile(telegram_id=message.from_user.id, full_name=message.text)
 
     if success:
-        await message.answer(
-            f"✅ <b>Имя обновлено!</b>\n\n" f"Твое новое имя: <b>{message.text}</b>"
-        )
+        await message.answer(f"✅ <b>Имя обновлено!</b>\n\nТвое новое имя: <b>{message.text}</b>")
 
         user = await user_service.get_user(message.from_user.id)
         bonus_balance = user.get("bonus_balance", 0)
@@ -680,15 +613,10 @@ async def client_edit_phone_process(message: Message, state: FSMContext):
         )
         return
 
-    success = await user_service.update_user_profile(
-        telegram_id=message.from_user.id, phone=message.text
-    )
+    success = await user_service.update_user_profile(telegram_id=message.from_user.id, phone=message.text)
 
     if success:
-        await message.answer(
-            f"✅ <b>Номер телефона обновлен!</b>\n\n"
-            f"Новый номер: <b>{message.text}</b>"
-        )
+        await message.answer(f"✅ <b>Номер телефона обновлен!</b>\n\nНовый номер: <b>{message.text}</b>")
 
         user = await user_service.get_user(message.from_user.id)
         bonus_balance = user.get("bonus_balance", 0)
@@ -704,9 +632,7 @@ async def client_edit_phone_process(message: Message, state: FSMContext):
             reply_markup=keyboard,
         )
     else:
-        await message.answer(
-            "❌ Ошибка при обновлении номера телефона. Попробуй ещё раз."
-        )
+        await message.answer("❌ Ошибка при обновлении номера телефона. Попробуй ещё раз.")
 
     await state.clear()
 
@@ -718,9 +644,7 @@ async def client_delete_account_start(callback: CallbackQuery, state: FSMContext
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [
-                InlineKeyboardButton(
-                    text="✅ Удалить", callback_data="confirm_delete_account"
-                ),
+                InlineKeyboardButton(text="✅ Удалить", callback_data="confirm_delete_account"),
                 InlineKeyboardButton(text="❌ Отмена", callback_data="client_profile"),
             ]
         ]
@@ -747,9 +671,7 @@ async def client_confirm_delete_account(callback: CallbackQuery, state: FSMConte
 
     if success:
         await callback.message.edit_text(
-            "✅ <b>Аккаунт удален</b>\n\n"
-            "Твой аккаунт и все данные были удалены.\n"
-            "Чтобы вернуться, используй /start"
+            "✅ <b>Аккаунт удален</b>\n\nТвой аккаунт и все данные были удалены.\nЧтобы вернуться, используй /start"
         )
         logger.info(f"Client {callback.from_user.id} deleted their account")
     else:
@@ -822,9 +744,7 @@ async def client_edit_reminder_handler(callback: CallbackQuery):
         prefix = "✅ " if is_selected else ""
 
         keyboard.inline_keyboard[-1].append(
-            InlineKeyboardButton(
-                text=f"{prefix}{time_str}", callback_data=f"set_reminder_{hour:02d}"
-            )
+            InlineKeyboardButton(text=f"{prefix}{time_str}", callback_data=f"set_reminder_{hour:02d}")
         )
 
     keyboard.inline_keyboard.append(
@@ -850,9 +770,7 @@ async def set_reminder_handler(callback: CallbackQuery):
     hour = callback.data.split("_")[-1]
     reminder_time = f"{hour}:00"
 
-    success = await user_service.update_reminder_time(
-        callback.from_user.id, reminder_time
-    )
+    success = await user_service.update_reminder_time(callback.from_user.id, reminder_time)
 
     if success:
         user = await user_service.get_user(callback.from_user.id)
@@ -872,6 +790,4 @@ async def set_reminder_handler(callback: CallbackQuery):
             reply_markup=keyboard,
         )
     else:
-        await callback.answer(
-            "❌ Ошибка при обновлении времени напоминания", show_alert=True
-        )
+        await callback.answer("❌ Ошибка при обновлении времени напоминания", show_alert=True)

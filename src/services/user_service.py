@@ -75,13 +75,9 @@ class UserService:
         # Increment referral count for referrer if applicable
         if referred_by:
             await self.user_repo.increment_referral_count(referred_by)
-            logger.info(
-                f"Registered user {user_id} (telegram_id: {telegram_id}) referred by {referred_by}"
-            )
+            logger.info(f"Registered user {user_id} (telegram_id: {telegram_id}) referred by {referred_by}")
         else:
-            logger.info(
-                f"Registered user {user_id} (telegram_id: {telegram_id}, role: {role})"
-            )
+            logger.info(f"Registered user {user_id} (telegram_id: {telegram_id}, role: {role})")
 
         return user_id
 
@@ -216,18 +212,10 @@ class UserService:
 
         # Build complete services dict
         services = {
-            "haircut": (
-                haircut if haircut is not None else current_services.get("haircut")
-            ),
-            "beard_trim": (
-                beard_trim
-                if beard_trim is not None
-                else current_services.get("beard_trim")
-            ),
+            "haircut": (haircut if haircut is not None else current_services.get("haircut")),
+            "beard_trim": (beard_trim if beard_trim is not None else current_services.get("beard_trim")),
             "haircut_and_beard": (
-                haircut_and_beard
-                if haircut_and_beard is not None
-                else current_services.get("haircut_and_beard")
+                haircut_and_beard if haircut_and_beard is not None else current_services.get("haircut_and_beard")
             ),
         }
 

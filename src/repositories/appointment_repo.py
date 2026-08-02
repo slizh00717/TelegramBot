@@ -36,9 +36,7 @@ class AppointmentRepository(BaseRepository):
         elif isinstance(appointment_time, str):
             return appointment_time
         else:
-            raise ValueError(
-                f"Invalid time type: {type(appointment_time)}. Expected time or str."
-            )
+            raise ValueError(f"Invalid time type: {type(appointment_time)}. Expected time or str.")
 
     async def create_appointment(
         self,
@@ -115,9 +113,7 @@ class AppointmentRepository(BaseRepository):
         """
         return await self.find_many({"barber_id": ObjectId(barber_id)})
 
-    async def find_by_barber_and_date(
-        self, barber_id: str, date_obj: date
-    ) -> list[dict[str, Any]]:
+    async def find_by_barber_and_date(self, barber_id: str, date_obj: date) -> list[dict[str, Any]]:
         """Find appointments for a barber on a specific date.
 
         Args:
@@ -170,9 +166,7 @@ class AppointmentRepository(BaseRepository):
             }
         )
 
-    async def cancel_appointment(
-        self, appointment_id: str, cancelled_by: str, reason: str
-    ) -> bool:
+    async def cancel_appointment(self, appointment_id: str, cancelled_by: str, reason: str) -> bool:
         """Cancel an appointment with reason tracking.
 
         Args:
@@ -221,9 +215,7 @@ class AppointmentRepository(BaseRepository):
         Returns:
             List of booked appointments for the client
         """
-        return await self.find_many(
-            {"client_id": ObjectId(client_id), "status": AppointmentStatus.BOOKED.value}
-        )
+        return await self.find_many({"client_id": ObjectId(client_id), "status": AppointmentStatus.BOOKED.value})
 
     async def find_by_barber_active(self, barber_id: str) -> list[dict[str, Any]]:
         """Find all active appointments for a barber.
@@ -234,6 +226,4 @@ class AppointmentRepository(BaseRepository):
         Returns:
             List of booked appointments for the barber
         """
-        return await self.find_many(
-            {"barber_id": ObjectId(barber_id), "status": AppointmentStatus.BOOKED.value}
-        )
+        return await self.find_many({"barber_id": ObjectId(barber_id), "status": AppointmentStatus.BOOKED.value})

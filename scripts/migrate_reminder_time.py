@@ -31,9 +31,7 @@ async def migrate_reminder_time():
 
         if success:
             updated += 1
-            logger.info(
-                f"✅ {user['full_name']} ({user['telegram_id']}) - время: 09:00"
-            )
+            logger.info(f"✅ {user['full_name']} ({user['telegram_id']}) - время: 09:00")
         else:
             logger.error(f"❌ Ошибка при обновлении {user['full_name']}")
 

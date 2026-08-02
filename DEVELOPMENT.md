@@ -87,6 +87,7 @@ from aiogram.types import CallbackQuery
 
 router = Router()
 
+
 @router.callback_query(F.data == "my_action")
 async def my_handler(callback: CallbackQuery):
     """Обработчик для кнопки"""
@@ -124,8 +125,9 @@ scheduler.add_job(
     my_job,
     CronTrigger(hour=14, minute=30),  # каждый день в 14:30
     id="my_job",
-    args=[notification_service]
+    args=[notification_service],
 )
+
 
 async def my_job(notification_service):
     """Фоновая задача"""
@@ -148,14 +150,11 @@ pytest tests/
 import pytest
 from src.services import UserService
 
+
 @pytest.mark.asyncio
 async def test_register_user():
     service = UserService()
-    user_id = await service.register_user(
-        telegram_id=123456789,
-        full_name="Test User",
-        role=UserRole.CLIENT
-    )
+    user_id = await service.register_user(telegram_id=123456789, full_name="Test User", role=UserRole.CLIENT)
     assert user_id is not None
 ```
 
@@ -215,6 +214,7 @@ except Exception as e:
 ```python
 from src.models import UserCreate
 
+
 class MyHandler:
     async def handle(self, data: dict):
         # Автоматическая валидация
@@ -240,6 +240,7 @@ logger.error(f"Database error: {e}")
 # ✅ Правильно
 async def my_handler(self):
     user = await self.user_repo.find_by_id(user_id)
+
 
 # ❌ Неправильно
 def my_handler(self):
@@ -307,6 +308,7 @@ tail -f bot.log
 
 ```python
 import pdb
+
 
 async def my_handler():
     pdb.set_trace()  # Остановка выполнения

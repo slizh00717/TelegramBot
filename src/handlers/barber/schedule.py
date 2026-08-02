@@ -64,9 +64,7 @@ def create_time_keyboard(start=0, end=24) -> InlineKeyboardMarkup:
         if (hour - start) % 3 == 0:
             keyboard.inline_keyboard.append([])
 
-        keyboard.inline_keyboard[-1].append(
-            InlineKeyboardButton(text=time_str, callback_data=f"schedule_time_{hour}")
-        )
+        keyboard.inline_keyboard[-1].append(InlineKeyboardButton(text=time_str, callback_data=f"schedule_time_{hour}"))
 
     return keyboard
 
@@ -78,12 +76,10 @@ async def create_schedule_handler(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
     keyboard = create_calendar_keyboard()
-    keyboard.inline_keyboard.append(
-        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")]
-    )
+    keyboard.inline_keyboard.append([InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")])
 
     await callback.message.edit_text(
-        "📅 <b>Выбери дату</b>\n\n" "Доступны даты на 30 дней вперед",
+        "📅 <b>Выбери дату</b>\n\nДоступны даты на 30 дней вперед",
         reply_markup=keyboard,
     )
     await state.set_state(ScheduleStates.choosing_date)
@@ -108,9 +104,7 @@ async def process_date_callback(callback: CallbackQuery, state: FSMContext):
                 [InlineKeyboardButton(text="🏠 Меню", callback_data="menu")],
             ]
         )
-        await callback.message.edit_text(
-            "❌ Ошибка при обработке даты. Попробуй снова.", reply_markup=keyboard
-        )
+        await callback.message.edit_text("❌ Ошибка при обработке даты. Попробуй снова.", reply_markup=keyboard)
         await state.clear()
         return
 
@@ -119,17 +113,14 @@ async def process_date_callback(callback: CallbackQuery, state: FSMContext):
     keyboard = create_time_keyboard(start=9, end=23)
     keyboard.inline_keyboard.append(
         [
-            InlineKeyboardButton(
-                text="⬅️ Назад", callback_data="barber_create_schedule"
-            ),
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="barber_create_schedule"),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
         ]
     )
 
     await safe_edit_text(
         callback.message,
-        f"📅 Дата: <b>{date_obj.strftime('%d.%m.%Y')}</b>\n\n"
-        "🕐 <b>Выбери время начала</b>",
+        f"📅 Дата: <b>{date_obj.strftime('%d.%m.%Y')}</b>\n\n🕐 <b>Выбери время начала</b>",
         reply_markup=keyboard,
     )
     await state.set_state(ScheduleStates.choosing_start_time)
@@ -156,9 +147,7 @@ async def process_start_time_callback(callback: CallbackQuery, state: FSMContext
                 [InlineKeyboardButton(text="🏠 Меню", callback_data="menu")],
             ]
         )
-        await callback.message.edit_text(
-            "❌ Ошибка: дата не найдена. Начни с начала.", reply_markup=keyboard
-        )
+        await callback.message.edit_text("❌ Ошибка: дата не найдена. Начни с начала.", reply_markup=keyboard)
         await state.clear()
         return
 
@@ -171,16 +160,12 @@ async def process_start_time_callback(callback: CallbackQuery, state: FSMContext
             keyboard.inline_keyboard.append([])
 
         keyboard.inline_keyboard[-1].append(
-            InlineKeyboardButton(
-                text=time_str, callback_data=f"schedule_end_time_{end_hour}"
-            )
+            InlineKeyboardButton(text=time_str, callback_data=f"schedule_end_time_{end_hour}")
         )
 
     keyboard.inline_keyboard.append(
         [
-            InlineKeyboardButton(
-                text="⬅️ Назад", callback_data="barber_create_schedule"
-            ),
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="barber_create_schedule"),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
         ]
     )
@@ -218,9 +203,7 @@ async def process_end_time_callback(callback: CallbackQuery, state: FSMContext):
                 [InlineKeyboardButton(text="🏠 Меню", callback_data="menu")],
             ]
         )
-        await callback.message.edit_text(
-            "❌ Ошибка: данные не найдены. Начни с начала.", reply_markup=keyboard
-        )
+        await callback.message.edit_text("❌ Ошибка: данные не найдены. Начни с начала.", reply_markup=keyboard)
         await state.clear()
         return
 
@@ -241,9 +224,7 @@ async def process_end_time_callback(callback: CallbackQuery, state: FSMContext):
 
     keyboard.inline_keyboard.append(
         [
-            InlineKeyboardButton(
-                text="⬅️ Назад", callback_data="barber_create_schedule"
-            ),
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="barber_create_schedule"),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
         ]
     )
@@ -282,9 +263,7 @@ async def process_haircut_duration_callback(callback: CallbackQuery, state: FSMC
 
     keyboard.inline_keyboard.append(
         [
-            InlineKeyboardButton(
-                text="⬅️ Назад", callback_data="barber_create_schedule"
-            ),
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="barber_create_schedule"),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
         ]
     )
@@ -302,9 +281,7 @@ async def process_haircut_duration_callback(callback: CallbackQuery, state: FSMC
 
 @router.callback_query(F.data.startswith("schedule_beard_trim_duration_"))
 @require_role(UserRole.BARBER)
-async def process_beard_trim_duration_callback(
-    callback: CallbackQuery, state: FSMContext
-):
+async def process_beard_trim_duration_callback(callback: CallbackQuery, state: FSMContext):
     """Обработка выбора длительности стрижки бороды."""
     duration = int(callback.data.split("_")[-1])
     data = await state.get_data()
@@ -326,9 +303,7 @@ async def process_beard_trim_duration_callback(
 
     keyboard.inline_keyboard.append(
         [
-            InlineKeyboardButton(
-                text="⬅️ Назад", callback_data="barber_create_schedule"
-            ),
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="barber_create_schedule"),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu"),
         ]
     )
@@ -349,9 +324,7 @@ async def process_beard_trim_duration_callback(
 
 @router.callback_query(F.data.startswith("schedule_haircut_beard_duration_"))
 @require_role(UserRole.BARBER)
-async def process_haircut_and_beard_duration_callback(
-    callback: CallbackQuery, state: FSMContext
-):
+async def process_haircut_and_beard_duration_callback(callback: CallbackQuery, state: FSMContext):
     """Обработка выбора длительности стрижки + бороды и создание расписания."""
     duration = int(callback.data.split("_")[-1])
     data = await state.get_data()
@@ -409,34 +382,22 @@ async def publish_schedule_handler(callback: CallbackQuery):
         repo = ScheduleRepository()
         schedule = await repo.find_by_id(schedule_id)
 
-        slots = await schedule_service.get_available_slots_for_barber(
-            str(schedule["barber_id"]), schedule["date"]
-        )
+        slots = await schedule_service.get_available_slots_for_barber(str(schedule["barber_id"]), schedule["date"])
 
         user = await user_service.get_user(callback.from_user.id)
 
         if hasattr(schedule["start_time"], "strftime"):
             start_time_str = schedule["start_time"].strftime("%H:%M")
         else:
-            start_time_str = (
-                schedule["start_time"][:5]
-                if len(schedule["start_time"]) > 5
-                else schedule["start_time"]
-            )
+            start_time_str = schedule["start_time"][:5] if len(schedule["start_time"]) > 5 else schedule["start_time"]
 
         if hasattr(schedule["end_time"], "strftime"):
             end_time_str = schedule["end_time"].strftime("%H:%M")
         else:
-            end_time_str = (
-                schedule["end_time"][:5]
-                if len(schedule["end_time"]) > 5
-                else schedule["end_time"]
-            )
+            end_time_str = schedule["end_time"][:5] if len(schedule["end_time"]) > 5 else schedule["end_time"]
 
         date_str = (
-            schedule["date"].strftime("%d.%m.%Y")
-            if hasattr(schedule["date"], "strftime")
-            else str(schedule["date"])
+            schedule["date"].strftime("%d.%m.%Y") if hasattr(schedule["date"], "strftime") else str(schedule["date"])
         )
 
         message = (
@@ -449,11 +410,7 @@ async def publish_schedule_handler(callback: CallbackQuery):
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        text="📝 Записаться", callback_data="client_book_appointment"
-                    )
-                ],
+                [InlineKeyboardButton(text="📝 Записаться", callback_data="client_book_appointment")],
             ]
         )
 

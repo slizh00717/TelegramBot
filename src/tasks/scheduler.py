@@ -1,4 +1,3 @@
-
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -81,12 +80,8 @@ async def send_hourly_reminders(notification_service: NotificationService, hour:
         barber_ids = list({str(appt["barber_id"]) for appt in appointments})
 
         # Load all clients and barbers in 2 queries instead of 2N queries
-        clients = await user_repo.find_many(
-            {"_id": {"$in": [ObjectId(cid) for cid in client_ids]}}
-        )
-        barbers = await user_repo.find_many(
-            {"_id": {"$in": [ObjectId(bid) for bid in barber_ids]}}
-        )
+        clients = await user_repo.find_many({"_id": {"$in": [ObjectId(cid) for cid in client_ids]}})
+        barbers = await user_repo.find_many({"_id": {"$in": [ObjectId(bid) for bid in barber_ids]}})
 
         # Create lookup maps for O(1) access
         client_map = {str(c["_id"]): c for c in clients}
@@ -125,9 +120,7 @@ async def send_hourly_reminders(notification_service: NotificationService, hour:
                     sent_count += 1
 
         if sent_count > 0:
-            logger.info(
-                f"Hourly reminders job ({hour_str}): sent {sent_count} reminders"
-            )
+            logger.info(f"Hourly reminders job ({hour_str}): sent {sent_count} reminders")
 
     except Exception as e:
         logger.error(f"Error in hourly reminders job (hour={hour}): {e}", exc_info=True)

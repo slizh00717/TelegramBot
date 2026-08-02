@@ -24,9 +24,7 @@ class NotificationService:
             return False
 
         try:
-            await self.bot.send_message(
-                chat_id, message_text, parse_mode="HTML", reply_markup=reply_markup
-            )
+            await self.bot.send_message(chat_id, message_text, parse_mode="HTML", reply_markup=reply_markup)
             logger.info(f"Sent message to {chat_id}")
             return True
         except Exception as e:
@@ -86,9 +84,7 @@ class NotificationService:
         )
 
         # Send message
-        if await self.send_message(
-            user["telegram_id"], message, reply_markup=reply_markup
-        ):
+        if await self.send_message(user["telegram_id"], message, reply_markup=reply_markup):
             # Mark as sent
             await self.notification_repo.mark_sent(notification_id, "TELEGRAM")
             return True
@@ -178,11 +174,7 @@ class NotificationService:
         if not barber:
             return False
 
-        message = (
-            f"<b>📅 Новая запись</b>\n\n"
-            f"👤 Клиент: {client_name}\n"
-            f"🕐 Время: {appointment_time}"
-        )
+        message = f"<b>📅 Новая запись</b>\n\n👤 Клиент: {client_name}\n🕐 Время: {appointment_time}"
 
         return await self.notify_user(
             user_id=barber_id,
@@ -191,15 +183,9 @@ class NotificationService:
             message=message,
         )
 
-    async def send_appointment_cancelled_notification(
-        self, client_id: str, reason: str
-    ) -> bool:
+    async def send_appointment_cancelled_notification(self, client_id: str, reason: str) -> bool:
         """Send notification to client about cancelled appointment"""
-        message = (
-            f"<b>❌ Ваша запись была отменена</b>\n\n"
-            f"Причина: {reason}\n\n"
-            f"Вы можете записаться на другое время"
-        )
+        message = f"<b>❌ Ваша запись была отменена</b>\n\nПричина: {reason}\n\nВы можете записаться на другое время"
 
         return await self.notify_user(
             user_id=client_id,
@@ -235,14 +221,10 @@ class NotificationService:
             message=message,
         )
 
-    async def send_slot_available_notification(
-        self, barber_id: str, slot_time: str
-    ) -> bool:
+    async def send_slot_available_notification(self, barber_id: str, slot_time: str) -> bool:
         """Send notification to barber about available slot"""
         message = (
-            f"<b>✨ Место освободилось</b>\n\n"
-            f"🕐 Время: {slot_time}\n\n"
-            f"Вы можете сообщить своим клиентам об этом месте"
+            f"<b>✨ Место освободилось</b>\n\n🕐 Время: {slot_time}\n\nВы можете сообщить своим клиентам об этом месте"
         )
 
         return await self.notify_user(

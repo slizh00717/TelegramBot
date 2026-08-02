@@ -25,11 +25,7 @@ def generate_time_slots(
     tz = get_timezone()
 
     # Парсим дату и время из расписания
-    date_obj = (
-        schedule["date"].date()
-        if hasattr(schedule["date"], "date")
-        else schedule["date"]
-    )
+    date_obj = schedule["date"].date() if hasattr(schedule["date"], "date") else schedule["date"]
     start_time = schedule["start_time"]
     end_time = schedule["end_time"]
 
@@ -70,10 +66,7 @@ def generate_time_slots(
         slots.append(slot)
         current_time = slot_end
 
-    logger.info(
-        f"Generated {len(slots)} slots for service {service_type} "
-        f"with duration {duration_minutes}min"
-    )
+    logger.info(f"Generated {len(slots)} slots for service {service_type} with duration {duration_minutes}min")
     return slots
 
 

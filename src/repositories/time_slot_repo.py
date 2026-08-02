@@ -11,9 +11,7 @@ class TimeSlotRepository(BaseRepository):
     def __init__(self):
         super().__init__("time_slots")
 
-    async def create_slot(
-        self, schedule_id: str, barber_id: str, start_time: datetime, end_time: datetime
-    ) -> str:
+    async def create_slot(self, schedule_id: str, barber_id: str, start_time: datetime, end_time: datetime) -> str:
         """Create a new time slot"""
         slot_data = {
             "schedule_id": ObjectId(schedule_id),
@@ -32,13 +30,9 @@ class TimeSlotRepository(BaseRepository):
 
     async def find_available_for_barber(self, barber_id: str) -> list[dict[str, Any]]:
         """Find all available slots for a barber"""
-        return await self.find_many(
-            {"barber_id": ObjectId(barber_id), "status": TimeSlotStatus.AVAILABLE.value}
-        )
+        return await self.find_many({"barber_id": ObjectId(barber_id), "status": TimeSlotStatus.AVAILABLE.value})
 
-    async def find_available_for_date(
-        self, barber_id: str, date_obj
-    ) -> list[dict[str, Any]]:
+    async def find_available_for_date(self, barber_id: str, date_obj) -> list[dict[str, Any]]:
         """Find available slots for a specific date"""
         from datetime import date as date_type
 

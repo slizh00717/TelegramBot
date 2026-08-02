@@ -138,8 +138,10 @@ http_cli.py
 class UserRepository:
     pass
 
+
 class HTTPClientFactory:  # Acronyms stay uppercase
     pass
+
 
 # Functions and variables: snake_case
 def get_user_by_email(email: str) -> User | None:
@@ -273,23 +275,15 @@ def create_user(
     name: str,
     role: UserRole = UserRole.MEMBER,
     notify: bool = True,
-) -> User:
-    ...
+) -> User: ...
+
 
 # Good: Chain method calls clearly
-result = (
-    db.query(User)
-    .filter(User.active == True)
-    .order_by(User.created_at.desc())
-    .limit(10)
-    .all()
-)
+result = db.query(User).filter(User.active == True).order_by(User.created_at.desc()).limit(10).all()
 
 # Good: Format long strings
 error_message = (
-    f"Failed to process user {user_id}: "
-    f"received status {response.status_code} "
-    f"with body {response.text[:100]}"
+    f"Failed to process user {user_id}: received status {response.status_code} with body {response.text[:100]}"
 )
 ```
 

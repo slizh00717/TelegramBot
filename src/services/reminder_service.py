@@ -42,9 +42,7 @@ class ReminderService:
 
         # Find appointments that need reminders
         appointments = await self.appointment_repo.find_reminders_needed(today)
-        logger.info(
-            f"Found {len(appointments)} appointments that need reminders for today"
-        )
+        logger.info(f"Found {len(appointments)} appointments that need reminders for today")
 
         sent_count = 0
         for appointment in appointments:
@@ -52,9 +50,7 @@ class ReminderService:
             if success:
                 sent_count += 1
 
-        logger.info(
-            f"Sent {sent_count} reminders out of {len(appointments)} appointments"
-        )
+        logger.info(f"Sent {sent_count} reminders out of {len(appointments)} appointments")
         return sent_count
 
     async def schedule_reminders_for_date(self, target_date) -> list[dict[str, Any]]:

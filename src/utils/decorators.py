@@ -21,9 +21,7 @@ def require_role(*allowed_roles: UserRole):
 
             user = await user_repo.find_by_telegram_id(telegram_id)
             if not user:
-                await update.answer(
-                    "❌ Користувач не зареєстрований. Використайте /start"
-                )
+                await update.answer("❌ Користувач не зареєстрований. Використайте /start")
                 return
 
             if user["role"] not in [role.value for role in allowed_roles]:

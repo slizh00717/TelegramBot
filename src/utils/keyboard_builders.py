@@ -90,9 +90,7 @@ def build_time_keyboard(
         if (hour - start) % 3 == 0:
             keyboard.inline_keyboard.append([])
 
-        keyboard.inline_keyboard[-1].append(
-            InlineKeyboardButton(text=time_str, callback_data=f"schedule_time_{hour}")
-        )
+        keyboard.inline_keyboard[-1].append(InlineKeyboardButton(text=time_str, callback_data=f"schedule_time_{hour}"))
 
     return keyboard
 

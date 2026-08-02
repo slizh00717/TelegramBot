@@ -40,9 +40,7 @@ async def migrate_referral_codes():
 
         if success:
             updated += 1
-            logger.info(
-                f"✅ {user['full_name']} ({user['telegram_id']}) - код: {referral_code}"
-            )
+            logger.info(f"✅ {user['full_name']} ({user['telegram_id']}) - код: {referral_code}")
         else:
             logger.error(f"❌ Ошибка при обновлении {user['full_name']}")
 

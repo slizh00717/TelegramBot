@@ -44,9 +44,7 @@ class ScheduleService:
             beard_trim_duration_minutes,
             haircut_and_beard_duration_minutes,
         )
-        logger.info(
-            f"Created schedule {schedule_id} for barber {barber_id} on {date_obj}"
-        )
+        logger.info(f"Created schedule {schedule_id} for barber {barber_id} on {date_obj}")
 
         schedule = await self.schedule_repo.find_by_id(schedule_id)
         return schedule
@@ -76,9 +74,7 @@ class ScheduleService:
                 break
 
             logger.info(f"Creating slot: {current_time} - {slot_end}")
-            await self.time_slot_repo.create_slot(
-                schedule_id, barber_id, current_time, slot_end
-            )
+            await self.time_slot_repo.create_slot(schedule_id, barber_id, current_time, slot_end)
             slots_created += 1
             current_time = slot_end
 
@@ -122,9 +118,7 @@ class ScheduleService:
 
         # Get all booked appointments for this barber on this date
         appointment_repo = AppointmentRepository()
-        booked_appointments = await appointment_repo.find_by_barber_and_date(
-            barber_id, date_obj
-        )
+        booked_appointments = await appointment_repo.find_by_barber_and_date(barber_id, date_obj)
 
         # Get service durations for calculating appointment end times
         def get_duration_for_service(svc_type: str) -> int:
@@ -147,9 +141,7 @@ class ScheduleService:
             appt_time_str = appt["appointment_time"]
             # Parse appointment time (format: "HH:MM")
             appt_hour, appt_min = map(int, appt_time_str.split(":"))
-            appt_start = datetime.combine(
-                date_obj, time(hour=appt_hour, minute=appt_min)
-            )
+            appt_start = datetime.combine(date_obj, time(hour=appt_hour, minute=appt_min))
             appt_start = tz.localize(appt_start)  # Make timezone-aware
 
             # Get service type and calculate duration
@@ -232,9 +224,7 @@ class ScheduleService:
 
         return available_slots
 
-    async def get_available_slots_for_barber(
-        self, barber_id: str, date_obj: date
-    ) -> list[dict[str, Any]]:
+    async def get_available_slots_for_barber(self, barber_id: str, date_obj: date) -> list[dict[str, Any]]:
         """Get available time slots for a barber on a specific date (for barber view)"""
         return await self.time_slot_repo.find_available_for_date(barber_id, date_obj)
 

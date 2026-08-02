@@ -161,25 +161,19 @@ class UserRepository(BaseRepository):
         """Unblock user to receive notifications"""
         return await self.update(user_id, {"is_blocked": False})
 
-    async def update_barber_services(
-        self, user_id: str, services: dict[str, float]
-    ) -> bool:
+    async def update_barber_services(self, user_id: str, services: dict[str, float]) -> bool:
         """Update barber services and prices with updated_at timestamp"""
         user = await self.find_by_id(user_id)
         if not user:
             return False
 
         # Get current services to preserve unmodified values
-        current_services = (
-            user.get("services", {}) if isinstance(user.get("services"), dict) else {}
-        )
+        current_services = user.get("services", {}) if isinstance(user.get("services"), dict) else {}
 
         # Build complete services dict, preserving existing values
         new_services = {
             "haircut": (
-                services.get("haircut")
-                if services.get("haircut") is not None
-                else current_services.get("haircut")
+                services.get("haircut") if services.get("haircut") is not None else current_services.get("haircut")
             ),
             "beard_trim": (
                 services.get("beard_trim")
@@ -197,9 +191,7 @@ class UserRepository(BaseRepository):
         # Update services
         return await self.update(user_id, {"services": new_services})
 
-    async def find_by_referral_code(
-        self, referral_code: str
-    ) -> dict[str, Any] | None:
+    async def find_by_referral_code(self, referral_code: str) -> dict[str, Any] | None:
         """Find user by referral code"""
         return await self.find_one({"referral_code": referral_code})
 

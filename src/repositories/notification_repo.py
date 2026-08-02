@@ -26,12 +26,8 @@ class NotificationRepository(BaseRepository):
             "type": notification_type.value,
             "title": title,
             "message": message,
-            "related_appointment_id": (
-                ObjectId(related_appointment_id) if related_appointment_id else None
-            ),
-            "related_schedule_id": (
-                ObjectId(related_schedule_id) if related_schedule_id else None
-            ),
+            "related_appointment_id": (ObjectId(related_appointment_id) if related_appointment_id else None),
+            "related_schedule_id": (ObjectId(related_schedule_id) if related_schedule_id else None),
             "is_sent": False,
             "sent_at": None,
             "sent_method": None,
@@ -47,15 +43,11 @@ class NotificationRepository(BaseRepository):
         """Find all unsent notifications"""
         return await self.find_many({"is_sent": False})
 
-    async def find_by_type(
-        self, notification_type: NotificationType
-    ) -> list[dict[str, Any]]:
+    async def find_by_type(self, notification_type: NotificationType) -> list[dict[str, Any]]:
         """Find notifications by type"""
         return await self.find_many({"type": notification_type.value})
 
-    async def mark_sent(
-        self, notification_id: str, sent_method: str = "TELEGRAM"
-    ) -> bool:
+    async def mark_sent(self, notification_id: str, sent_method: str = "TELEGRAM") -> bool:
         """Mark notification as sent"""
         return await self.update(
             notification_id,
@@ -64,6 +56,4 @@ class NotificationRepository(BaseRepository):
 
     async def find_by_appointment(self, appointment_id: str) -> list[dict[str, Any]]:
         """Find notifications related to an appointment"""
-        return await self.find_many(
-            {"related_appointment_id": ObjectId(appointment_id)}
-        )
+        return await self.find_many({"related_appointment_id": ObjectId(appointment_id)})

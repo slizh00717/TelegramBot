@@ -19,9 +19,7 @@ class BaseRepository:
         collection: Async MongoDB collection instance (motor)
     """
 
-    def __init__(
-        self, collection_name: str, db: AsyncIOMotorDatabase | None = None
-    ) -> None:
+    def __init__(self, collection_name: str, db: AsyncIOMotorDatabase | None = None) -> None:
         """Initialize repository with collection name.
 
         Args:
@@ -82,9 +80,7 @@ class BaseRepository:
         except ValueError as e:
             raise ValueError(f"Cannot find document: {str(e)}") from e
 
-    async def find_many(
-        self, query: dict[str, Any], limit: int | None = None, skip: int = 0
-    ) -> list[dict[str, Any]]:
+    async def find_many(self, query: dict[str, Any], limit: int | None = None, skip: int = 0) -> list[dict[str, Any]]:
         """Find multiple documents matching query.
 
         Args:
@@ -128,9 +124,7 @@ class BaseRepository:
         """
         try:
             object_id = self._validate_object_id(id)
-            result = await self.collection.update_one(
-                {"_id": object_id}, {"$set": data}
-            )
+            result = await self.collection.update_one({"_id": object_id}, {"$set": data})
             return result.modified_count > 0
         except ValueError as e:
             raise ValueError(f"Cannot update document: {str(e)}") from e

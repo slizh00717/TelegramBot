@@ -17,9 +17,7 @@ class AppointmentService:
         self.time_slot_repo = TimeSlotRepository()
         self.user_repo = UserRepository()
 
-    async def book_appointment(
-        self, slot, client_id: str, service_type: str = "haircut"
-    ) -> dict[str, Any] | None:
+    async def book_appointment(self, slot, client_id: str, service_type: str = "haircut") -> dict[str, Any] | None:
         """
         Book an appointment for a client on a time slot.
 
@@ -84,15 +82,11 @@ class AppointmentService:
         if isinstance(slot, str):
             await self.time_slot_repo.book_slot(time_slot_id)
 
-        logger.info(
-            f"Booked appointment {appointment_id} for client {client_id}, service: {service_type}"
-        )
+        logger.info(f"Booked appointment {appointment_id} for client {client_id}, service: {service_type}")
         appointment = await self.appointment_repo.find_by_id(appointment_id)
         return appointment
 
-    async def cancel_appointment(
-        self, appointment_id: str, cancelled_by: str, reason: str
-    ) -> bool:
+    async def cancel_appointment(self, appointment_id: str, cancelled_by: str, reason: str) -> bool:
         """
         Cancel an appointment and release the time slot.
 
@@ -111,17 +105,13 @@ class AppointmentService:
             return False
 
         # Cancel appointment
-        result = await self.appointment_repo.cancel_appointment(
-            appointment_id, cancelled_by, reason
-        )
+        result = await self.appointment_repo.cancel_appointment(appointment_id, cancelled_by, reason)
 
         if result:
             # Release time slot
             time_slot_id = str(appointment["time_slot_id"])
             await self.time_slot_repo.release_slot(time_slot_id)
-            logger.info(
-                f"Cancelled appointment {appointment_id}. Cancelled by: {cancelled_by}"
-            )
+            logger.info(f"Cancelled appointment {appointment_id}. Cancelled by: {cancelled_by}")
 
         return result
 
@@ -129,9 +119,7 @@ class AppointmentService:
         """Get all appointments for a client"""
         return await self.appointment_repo.find_by_client(client_id)
 
-    async def get_client_active_appointments(
-        self, client_id: str
-    ) -> list[dict[str, Any]]:
+    async def get_client_active_appointments(self, client_id: str) -> list[dict[str, Any]]:
         """Get active (booked) appointments for a client"""
         return await self.appointment_repo.find_active(client_id)
 
@@ -139,15 +127,11 @@ class AppointmentService:
         """Get all appointments for a barber"""
         return await self.appointment_repo.find_by_barber(barber_id)
 
-    async def get_barber_appointments_for_date(
-        self, barber_id: str, date_obj: date
-    ) -> list[dict[str, Any]]:
+    async def get_barber_appointments_for_date(self, barber_id: str, date_obj: date) -> list[dict[str, Any]]:
         """Get appointments for a barber on a specific date"""
         return await self.appointment_repo.find_by_barber_and_date(barber_id, date_obj)
 
-    async def get_appointment_by_time_slot(
-        self, time_slot_id: str
-    ) -> dict[str, Any] | None:
+    async def get_appointment_by_time_slot(self, time_slot_id: str) -> dict[str, Any] | None:
         """Get appointment by time slot ID"""
         return await self.appointment_repo.find_by_time_slot(time_slot_id)
 
@@ -237,7 +221,5 @@ class AppointmentService:
 
             return True
         except Exception as e:
-            logger.error(
-                f"Error completing appointment {appointment_id}: {e}", exc_info=True
-            )
+            logger.error(f"Error completing appointment {appointment_id}: {e}", exc_info=True)
             return False
