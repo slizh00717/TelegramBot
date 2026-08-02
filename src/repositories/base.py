@@ -134,9 +134,7 @@ class BaseRepository(ABC):
         except ValueError as e:
             raise ValueError(f"Cannot update document: {str(e)}")
 
-    async def update_many(
-        self, query: Dict[str, Any], data: Dict[str, Any]
-    ) -> int:
+    async def update_many(self, query: Dict[str, Any], data: Dict[str, Any]) -> int:
         """Update multiple documents matching query.
 
         Args:

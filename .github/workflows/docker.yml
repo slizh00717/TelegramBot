@@ -1,0 +1,86 @@
+name: Docker Build & Push
+
+on:
+  push:
+    branches: [ main, develop ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      if: github.event_name != 'pull_request'
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata for main branch (latest only)
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      id: meta-latest
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=raw,value=latest
+
+    - name: Extract metadata for tag (version + latest)
+      if: startsWith(github.ref, 'refs/tags/v')
+      id: meta-tag
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=raw,value=latest
+
+    - name: Extract metadata for other branches
+      if: github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v') && github.event_name == 'push'
+      id: meta-branch
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+
+    - name: Determine tags
+      id: tags
+      run: |
+        if [ "${{ steps.meta-latest.outputs.tags }}" != "" ]; then
+          echo "tags=${{ steps.meta-latest.outputs.tags }}" >> $GITHUB_OUTPUT
+          echo "labels=${{ steps.meta-latest.outputs.labels }}" >> $GITHUB_OUTPUT
+        elif [ "${{ steps.meta-tag.outputs.tags }}" != "" ]; then
+          echo "tags=${{ steps.meta-tag.outputs.tags }}" >> $GITHUB_OUTPUT
+          echo "labels=${{ steps.meta-tag.outputs.labels }}" >> $GITHUB_OUTPUT
+        elif [ "${{ steps.meta-branch.outputs.tags }}" != "" ]; then
+          echo "tags=${{ steps.meta-branch.outputs.tags }}" >> $GITHUB_OUTPUT
+          echo "labels=${{ steps.meta-branch.outputs.labels }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.tags.outputs.tags }}
+        labels: ${{ steps.tags.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max

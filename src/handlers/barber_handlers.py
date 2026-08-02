@@ -1719,7 +1719,9 @@ async def barber_edit_address_start(callback: CallbackQuery, state: FSMContext):
 async def barber_edit_address_process(message: Message, state: FSMContext):
     """Process new barber address"""
     if len(message.text) < 3:
-        await message.answer("❌ Адрес должен быть не менее 3 символов. Попробуй ещё раз:")
+        await message.answer(
+            "❌ Адрес должен быть не менее 3 символов. Попробуй ещё раз:"
+        )
         return
 
     success = await user_service.update_user_profile(
@@ -1728,8 +1730,7 @@ async def barber_edit_address_process(message: Message, state: FSMContext):
 
     if success:
         await message.answer(
-            f"✅ <b>Адрес обновлен!</b>\n\n"
-            f"Новый адрес: <b>{message.text}</b>"
+            f"✅ <b>Адрес обновлен!</b>\n\n" f"Новый адрес: <b>{message.text}</b>"
         )
 
         user = await user_service.get_user(message.from_user.id)
@@ -1777,9 +1778,7 @@ async def barber_edit_address_process(message: Message, state: FSMContext):
             reply_markup=keyboard,
         )
     else:
-        await message.answer(
-            "❌ Ошибка при обновлении адреса. Попробуй ещё раз."
-        )
+        await message.answer("❌ Ошибка при обновлении адреса. Попробуй ещё раз.")
 
     await state.clear()
 
