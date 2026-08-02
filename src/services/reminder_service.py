@@ -20,10 +20,7 @@ class ReminderService:
 
         # Format appointment time
         appointment_time = appointment["appointment_time"]
-        if isinstance(appointment_time, time):
-            time_str = appointment_time.strftime("%H:%M")
-        else:
-            time_str = str(appointment_time)
+        time_str = appointment_time.strftime("%H:%M") if isinstance(appointment_time, time) else str(appointment_time)
 
         # Send reminder
         success = await self.notification_service.send_reminder_notification(

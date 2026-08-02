@@ -66,7 +66,7 @@ class AppointmentService:
             start_time_local = start_time_utc.astimezone(tz)
         except Exception as e:
             logger.error(f"Timezone conversion error: {e}", exc_info=True)
-            raise ValueError(f"Invalid datetime format in time slot: {start_time_utc}")
+            raise ValueError(f"Invalid datetime format in time slot: {start_time_utc}") from e
 
         # Create appointment with service type
         appointment_id = await self.appointment_repo.create_appointment(

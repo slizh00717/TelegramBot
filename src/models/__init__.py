@@ -21,6 +21,8 @@ from .schedule import (
 from .user import UserBarberUpdate, UserBase, UserCreate, UserRead, UserUpdate
 
 __all__ = [
+    # Base models
+    "PyObjectId",
     # User models
     "UserCreate",
     "UserUpdate",

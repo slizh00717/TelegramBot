@@ -817,6 +817,7 @@ async def barber_select_date_handler(callback: CallbackQuery, state: FSMContext)
 
     data = await state.get_data()
     client_id = data.get("selected_client_id")
+    client_name = data.get("selected_client_name", "Клиент")
 
     if not client_id:
         keyboard = InlineKeyboardMarkup(

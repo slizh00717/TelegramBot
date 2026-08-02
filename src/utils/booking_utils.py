@@ -20,7 +20,7 @@ def format_appointment_info(appointment: dict[str, Any]) -> tuple[str, str]:
     appointment_date = appointment["appointment_date"]
 
     # Handle datetime, date, and string types
-    if isinstance(appointment_date, datetime) or isinstance(appointment_date, date):
+    if isinstance(appointment_date, (datetime, date)):
         date_str = appointment_date.strftime("%d.%m.%Y")
     elif isinstance(appointment_date, str):
         date_str = appointment_date

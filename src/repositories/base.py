@@ -1,4 +1,3 @@
-from abc import ABC
 from typing import Any
 
 from bson import ObjectId
@@ -8,7 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from src.database import get_database
 
 
-class BaseRepository(ABC):
+class BaseRepository:
     """Base repository class providing common CRUD operations.
 
     This abstract class provides a standard async interface for MongoDB operations
@@ -47,8 +46,8 @@ class BaseRepository(ABC):
         """
         try:
             return ObjectId(id)
-        except InvalidId:
-            raise ValueError(f"Invalid ObjectId format: {id}")
+        except InvalidId as e:
+            raise ValueError(f"Invalid ObjectId format: {id}") from e
 
     async def create(self, data: dict[str, Any]) -> str:
         """Create a new document in the collection.
@@ -81,7 +80,7 @@ class BaseRepository(ABC):
             object_id = self._validate_object_id(id)
             return await self.collection.find_one({"_id": object_id})
         except ValueError as e:
-            raise ValueError(f"Cannot find document: {str(e)}")
+            raise ValueError(f"Cannot find document: {str(e)}") from e
 
     async def find_many(
         self, query: dict[str, Any], limit: int | None = None, skip: int = 0
@@ -134,7 +133,7 @@ class BaseRepository(ABC):
             )
             return result.modified_count > 0
         except ValueError as e:
-            raise ValueError(f"Cannot update document: {str(e)}")
+            raise ValueError(f"Cannot update document: {str(e)}") from e
 
     async def update_many(self, query: dict[str, Any], data: dict[str, Any]) -> int:
         """Update multiple documents matching query.
@@ -166,7 +165,7 @@ class BaseRepository(ABC):
             result = await self.collection.delete_one({"_id": object_id})
             return result.deleted_count > 0
         except ValueError as e:
-            raise ValueError(f"Cannot delete document: {str(e)}")
+            raise ValueError(f"Cannot delete document: {str(e)}") from e
 
     async def delete_many(self, query: dict[str, Any]) -> int:
         """Delete multiple documents matching query.
