@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
-from datetime import datetime, date, time
-from typing import Optional
+from datetime import date, datetime, time
+
 from bson import ObjectId
+from pydantic import BaseModel, Field
+
 from src.enums import TimeSlotStatus
 from src.models.base import PyObjectId
 
@@ -17,7 +18,7 @@ class ScheduleCreate(BaseModel):
 
 
 class ScheduleUpdate(BaseModel):
-    is_published: Optional[bool] = None
+    is_published: bool | None = None
 
 
 class ScheduleRead(BaseModel):

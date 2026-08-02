@@ -1,8 +1,9 @@
-from datetime import datetime, time, timedelta
-from typing import Optional, List, Dict, Any
+from datetime import time
+from typing import Any
+
 from src.repositories import AppointmentRepository
 from src.services.notification_service import NotificationService
-from src.utils import logger, get_timezone, get_date_at_time
+from src.utils import logger
 
 
 class ReminderService:
@@ -59,7 +60,7 @@ class ReminderService:
         )
         return sent_count
 
-    async def schedule_reminders_for_date(self, target_date) -> List[Dict[str, Any]]:
+    async def schedule_reminders_for_date(self, target_date) -> list[dict[str, Any]]:
         """
         Schedule reminders for a specific date.
         This is called by APScheduler.

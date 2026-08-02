@@ -1,11 +1,12 @@
 """Утилиты для работы с букингом и записями клиентов."""
 
-from typing import Dict, Any, Optional
 from datetime import date, datetime
+from typing import Any
+
 from src.enums import AppointmentStatus
 
 
-def format_appointment_info(appointment: Dict[str, Any]) -> tuple[str, str]:
+def format_appointment_info(appointment: dict[str, Any]) -> tuple[str, str]:
     """
     Форматирует информацию о записи для показа пользователю.
 
@@ -19,9 +20,7 @@ def format_appointment_info(appointment: Dict[str, Any]) -> tuple[str, str]:
     appointment_date = appointment["appointment_date"]
 
     # Handle datetime, date, and string types
-    if isinstance(appointment_date, datetime):
-        date_str = appointment_date.strftime("%d.%m.%Y")
-    elif isinstance(appointment_date, date):
+    if isinstance(appointment_date, datetime) or isinstance(appointment_date, date):
         date_str = appointment_date.strftime("%d.%m.%Y")
     elif isinstance(appointment_date, str):
         date_str = appointment_date
@@ -43,22 +42,22 @@ def get_service_emoji(service_type: str) -> str:
     return emojis.get(service_type, "✂️")
 
 
-def is_appointment_active(appointment: Dict[str, Any]) -> bool:
+def is_appointment_active(appointment: dict[str, Any]) -> bool:
     """Проверяет, активна ли запись."""
     return appointment.get("status") == AppointmentStatus.BOOKED.value
 
 
-def is_appointment_completed(appointment: Dict[str, Any]) -> bool:
+def is_appointment_completed(appointment: dict[str, Any]) -> bool:
     """Проверяет, завершена ли запись."""
     return appointment.get("status") == AppointmentStatus.COMPLETED.value
 
 
-def is_appointment_cancelled(appointment: Dict[str, Any]) -> bool:
+def is_appointment_cancelled(appointment: dict[str, Any]) -> bool:
     """Проверяет, отменена ли запись."""
     return appointment.get("status") == AppointmentStatus.CANCELLED.value
 
 
-def group_appointments_by_date(appointments: list) -> Dict[Any, list]:
+def group_appointments_by_date(appointments: list) -> dict[Any, list]:
     """
     Группирует записи по датам.
 
@@ -77,10 +76,10 @@ def group_appointments_by_date(appointments: list) -> Dict[Any, list]:
 
 
 def build_appointment_message(
-    appointment: Dict[str, Any],
+    appointment: dict[str, Any],
     client_name: str,
     service_name: str,
-    barber_name: Optional[str] = None,
+    barber_name: str | None = None,
 ) -> str:
     """
     Строит сообщение о записи для отправки пользователю.

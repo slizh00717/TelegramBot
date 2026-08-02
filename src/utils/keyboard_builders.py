@@ -1,12 +1,12 @@
 """Построители клавиатур и вспомогательные функции для UI."""
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from datetime import date, datetime
-from typing import List, Tuple, Optional
+from datetime import date
+
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def build_date_selection_keyboard(
-    dates: List[date],
+    dates: list[date],
     callback_prefix: str,
     max_dates: int = 10,
 ) -> InlineKeyboardMarkup:
@@ -98,7 +98,7 @@ def build_time_keyboard(
 
 
 def build_duration_keyboard(
-    durations: List[int],
+    durations: list[int],
     callback_prefix: str,
 ) -> InlineKeyboardMarkup:
     """
@@ -129,7 +129,7 @@ def build_duration_keyboard(
 def build_back_menu_buttons(
     back_callback: str = "menu",
     back_text: str = "⬅️ Назад",
-) -> List[List[InlineKeyboardButton]]:
+) -> list[list[InlineKeyboardButton]]:
     """
     Строит кнопки для навигации назад и в меню.
 

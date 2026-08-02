@@ -1,5 +1,7 @@
-from datetime import datetime, date, time
+from datetime import date, datetime, time
+
 import pytz
+
 from src.config import settings
 
 

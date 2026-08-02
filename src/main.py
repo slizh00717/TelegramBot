@@ -1,12 +1,14 @@
 import asyncio
 import logging
 import sys
-from aiogram import Dispatcher, Bot
+
+from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
+
 from src.config import settings
 from src.database import MongoDB, create_indexes
-from src.handlers import user_router, barber_router, client_router
+from src.handlers import barber_router, client_router, user_router
 from src.services import NotificationService
 from src.tasks import BotScheduler
 from src.utils import logger

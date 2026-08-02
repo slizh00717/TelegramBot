@@ -1,5 +1,16 @@
+from .appointment import (
+    AppointmentCancel,
+    AppointmentCreate,
+    AppointmentRead,
+    AppointmentUpdate,
+)
 from .base import PyObjectId
-from .user import UserCreate, UserUpdate, UserRead, UserBase, UserBarberUpdate
+from .notification import (
+    NotificationCreate,
+    NotificationRead,
+    ReminderJobCreate,
+    ReminderJobUpdate,
+)
 from .schedule import (
     ScheduleCreate,
     ScheduleRead,
@@ -7,18 +18,7 @@ from .schedule import (
     TimeSlotCreate,
     TimeSlotRead,
 )
-from .appointment import (
-    AppointmentCreate,
-    AppointmentRead,
-    AppointmentUpdate,
-    AppointmentCancel,
-)
-from .notification import (
-    NotificationCreate,
-    NotificationRead,
-    ReminderJobCreate,
-    ReminderJobUpdate,
-)
+from .user import UserBarberUpdate, UserBase, UserCreate, UserRead, UserUpdate
 
 __all__ = [
     # User models

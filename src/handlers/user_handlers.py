@@ -1,18 +1,19 @@
-from aiogram import Router, F
-from aiogram.types import (
-    Message,
-    CallbackQuery,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-)
+from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from src.services import UserService
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    Message,
+    ReplyKeyboardMarkup,
+)
+
 from src.enums import UserRole
-from src.utils import logger, validate_name, validate_phone, normalize_phone
+from src.services import UserService
+from src.utils import logger, normalize_phone, validate_name, validate_phone
 
 router = Router()
 user_service = UserService()

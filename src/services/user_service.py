@@ -1,7 +1,8 @@
-from typing import Optional, Dict, Any
-from src.repositories import UserRepository
+from typing import Any
+
 from src.enums import UserRole
-from src.utils import logger, validate_phone, normalize_phone
+from src.repositories import UserRepository
+from src.utils import logger, normalize_phone, validate_phone
 
 
 class UserService:
@@ -24,9 +25,9 @@ class UserService:
         telegram_id: int,
         full_name: str,
         role: UserRole,
-        phone: Optional[str] = None,
-        username: Optional[str] = None,
-        referral_code_from: Optional[str] = None,
+        phone: str | None = None,
+        username: str | None = None,
+        referral_code_from: str | None = None,
     ) -> str:
         """
         Register a new user.
@@ -84,7 +85,7 @@ class UserService:
 
         return user_id
 
-    async def get_user(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def get_user(self, telegram_id: int) -> dict[str, Any] | None:
         """Get user by Telegram ID.
 
         Args:
@@ -98,9 +99,9 @@ class UserService:
     async def update_user_profile(
         self,
         telegram_id: int,
-        full_name: Optional[str] = None,
-        phone: Optional[str] = None,
-        address: Optional[str] = None,
+        full_name: str | None = None,
+        phone: str | None = None,
+        address: str | None = None,
     ) -> bool:
         """Update user profile with partial updates.
 
@@ -156,7 +157,7 @@ class UserService:
         """
         return await self.user_repo.unsubscribe_user(telegram_id)
 
-    async def get_all_subscribed_clients(self) -> list[Dict[str, Any]]:
+    async def get_all_subscribed_clients(self) -> list[dict[str, Any]]:
         """Get all subscribed clients for notifications"""
         clients = await self.user_repo.find_all_clients()
         return [c for c in clients if c.get("is_subscribed", True)]
@@ -165,7 +166,7 @@ class UserService:
         """Increment client's visit count"""
         return await self.user_repo.increment_visit_count(telegram_id)
 
-    async def get_barbers(self) -> list[Dict[str, Any]]:
+    async def get_barbers(self) -> list[dict[str, Any]]:
         """Get all barbers"""
         return await self.user_repo.find_barbers()
 
@@ -204,9 +205,9 @@ class UserService:
     async def update_barber_services(
         self,
         barber_id: str,
-        haircut: Optional[float] = None,
-        beard_trim: Optional[float] = None,
-        haircut_and_beard: Optional[float] = None,
+        haircut: float | None = None,
+        beard_trim: float | None = None,
+        haircut_and_beard: float | None = None,
     ) -> bool:
         """Update barber services and prices"""
         # Get current services
@@ -232,21 +233,21 @@ class UserService:
 
         return await self.user_repo.update_barber_services(barber_id, services)
 
-    async def get_barber_services(self, barber_id: str) -> Optional[Dict[str, Any]]:
+    async def get_barber_services(self, barber_id: str) -> dict[str, Any] | None:
         """Get barber services and prices"""
         user = await self.user_repo.find_by_id(barber_id)
         if user:
             return user.get("services", {})
         return None
 
-    async def get_referral_code(self, telegram_id: int) -> Optional[str]:
+    async def get_referral_code(self, telegram_id: int) -> str | None:
         """Get referral code for a user"""
         user = await self.get_user(telegram_id)
         if user:
             return user.get("referral_code")
         return None
 
-    async def get_referral_stats(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def get_referral_stats(self, telegram_id: int) -> dict[str, Any] | None:
         """Get referral statistics for a user"""
         user = await self.get_user(telegram_id)
         if not user:
@@ -259,7 +260,7 @@ class UserService:
             "referrals": referrals,
         }
 
-    async def get_referrer_info(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def get_referrer_info(self, telegram_id: int) -> dict[str, Any] | None:
         """Get info about who referred this user"""
         user = await self.get_user(telegram_id)
         if not user or not user.get("referred_by"):

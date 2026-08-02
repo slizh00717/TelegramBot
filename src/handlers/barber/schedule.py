@@ -1,24 +1,19 @@
 """Обработчики для создания и управления расписанием барбера."""
 
-from aiogram import Router, F
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from datetime import datetime, time, timedelta
+
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from datetime import datetime, date, time, timedelta
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
-import pytz
-
-from src.services import ScheduleService, UserService, NotificationService
-from src.config import settings
+from src.enums import NotificationType, UserRole
+from src.services import NotificationService, ScheduleService, UserService
 from src.utils import (
-    logger,
-    require_role,
     get_today,
-    get_timezone,
+    require_role,
     safe_edit_text,
 )
-from src.enums import UserRole, NotificationType
-from src.repositories import ScheduleRepository
 
 router = Router()
 schedule_service = ScheduleService()

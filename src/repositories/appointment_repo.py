@@ -1,8 +1,10 @@
-from typing import List, Dict, Any, Optional, Union
-from datetime import datetime, date, time
+from datetime import date, datetime, time
+from typing import Any
+
 from bson import ObjectId
-from src.repositories.base import BaseRepository
+
 from src.enums import AppointmentStatus
+from src.repositories.base import BaseRepository
 
 
 class AppointmentRepository(BaseRepository):
@@ -17,7 +19,7 @@ class AppointmentRepository(BaseRepository):
         super().__init__("appointments")
 
     @staticmethod
-    def _format_time_to_string(appointment_time: Union[time, str]) -> str:
+    def _format_time_to_string(appointment_time: time | str) -> str:
         """Convert time object or string to HH:MM format.
 
         Args:
@@ -46,7 +48,7 @@ class AppointmentRepository(BaseRepository):
         client_phone: str,
         client_name: str,
         appointment_date: date,
-        appointment_time: Union[time, str],
+        appointment_time: time | str,
         service_type: str = "haircut",
     ) -> str:
         """Create a new appointment.
@@ -91,7 +93,7 @@ class AppointmentRepository(BaseRepository):
         }
         return await self.create(appointment_data)
 
-    async def find_by_client(self, client_id: str) -> List[Dict[str, Any]]:
+    async def find_by_client(self, client_id: str) -> list[dict[str, Any]]:
         """Find all appointments for a client.
 
         Args:
@@ -102,7 +104,7 @@ class AppointmentRepository(BaseRepository):
         """
         return await self.find_many({"client_id": ObjectId(client_id)})
 
-    async def find_by_barber(self, barber_id: str) -> List[Dict[str, Any]]:
+    async def find_by_barber(self, barber_id: str) -> list[dict[str, Any]]:
         """Find all appointments for a barber.
 
         Args:
@@ -115,7 +117,7 @@ class AppointmentRepository(BaseRepository):
 
     async def find_by_barber_and_date(
         self, barber_id: str, date_obj: date
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Find appointments for a barber on a specific date.
 
         Args:
@@ -136,7 +138,7 @@ class AppointmentRepository(BaseRepository):
             }
         )
 
-    async def find_by_time_slot(self, time_slot_id: str) -> Optional[Dict[str, Any]]:
+    async def find_by_time_slot(self, time_slot_id: str) -> dict[str, Any] | None:
         """Find appointment by time slot ID.
 
         Args:
@@ -147,7 +149,7 @@ class AppointmentRepository(BaseRepository):
         """
         return await self.find_one({"time_slot_id": ObjectId(time_slot_id)})
 
-    async def find_reminders_needed(self, date_obj: date) -> List[Dict[str, Any]]:
+    async def find_reminders_needed(self, date_obj: date) -> list[dict[str, Any]]:
         """Find appointments that need reminders sent for a specific date.
 
         Args:
@@ -210,7 +212,7 @@ class AppointmentRepository(BaseRepository):
             },
         )
 
-    async def find_active(self, client_id: str) -> List[Dict[str, Any]]:
+    async def find_active(self, client_id: str) -> list[dict[str, Any]]:
         """Find all active (booked) appointments for a client.
 
         Args:
@@ -223,7 +225,7 @@ class AppointmentRepository(BaseRepository):
             {"client_id": ObjectId(client_id), "status": AppointmentStatus.BOOKED.value}
         )
 
-    async def find_by_barber_active(self, barber_id: str) -> List[Dict[str, Any]]:
+    async def find_by_barber_active(self, barber_id: str) -> list[dict[str, Any]]:
         """Find all active appointments for a barber.
 
         Args:

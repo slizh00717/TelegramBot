@@ -1,16 +1,16 @@
 """Утилиты для работы со слотами и доступностью расписания."""
 
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
-import pytz
+from typing import Any
+
 from src.utils import get_timezone, logger
 
 
 def generate_time_slots(
-    schedule: Dict[str, Any],
+    schedule: dict[str, Any],
     duration_minutes: int,
     service_type: str,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Генерирует доступные слоты на основе расписания и длительности услуги.
 
@@ -78,9 +78,9 @@ def generate_time_slots(
 
 
 def filter_available_slots(
-    slots: List[Dict[str, Any]],
-    booked_appointments: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    slots: list[dict[str, Any]],
+    booked_appointments: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """
     Фильтрует слоты, исключая уже забронированные времена.
 
@@ -107,7 +107,7 @@ def filter_available_slots(
     return available_slots
 
 
-def get_service_duration(schedule: Dict[str, Any], service_type: str) -> int:
+def get_service_duration(schedule: dict[str, Any], service_type: str) -> int:
     """
     Получает длительность услуги из расписания.
 

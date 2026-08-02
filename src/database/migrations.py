@@ -1,6 +1,7 @@
+import logging
+
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo import ASCENDING, DESCENDING
-import logging
 
 logger = logging.getLogger(__name__)
 

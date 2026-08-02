@@ -1,6 +1,8 @@
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from src.config import settings
 import logging
+
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 

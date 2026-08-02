@@ -1,9 +1,9 @@
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from datetime import datetime
-from src.services import ReminderService, NotificationService
-from src.utils import logger, get_timezone
-import pytz
+
+from src.services import NotificationService
+from src.utils import get_timezone, logger
 
 
 class BotScheduler:
@@ -60,9 +60,10 @@ async def send_hourly_reminders(notification_service: NotificationService, hour:
     Optimized to avoid N+1 queries by batch-loading all clients and barbers.
     """
     try:
-        from src.utils import get_today
-        from src.repositories import AppointmentRepository, UserRepository
         from bson import ObjectId
+
+        from src.repositories import AppointmentRepository, UserRepository
+        from src.utils import get_today
 
         hour_str = f"{hour:02d}:00"
 

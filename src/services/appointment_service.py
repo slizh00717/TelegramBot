@@ -1,12 +1,14 @@
 from datetime import date, datetime
-from typing import List, Dict, Any, Optional
-from bson import ObjectId
+from typing import Any
+
 import pytz
-from src.repositories import AppointmentRepository, TimeSlotRepository, UserRepository
-from src.enums import AppointmentStatus
-from src.utils import logger, get_timezone
+from bson import ObjectId
+
 from src.config import settings
 from src.database import get_mongo_client
+from src.enums import AppointmentStatus
+from src.repositories import AppointmentRepository, TimeSlotRepository, UserRepository
+from src.utils import get_timezone, logger
 
 
 class AppointmentService:
@@ -17,7 +19,7 @@ class AppointmentService:
 
     async def book_appointment(
         self, slot, client_id: str, service_type: str = "haircut"
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """
         Book an appointment for a client on a time slot.
 
@@ -123,33 +125,33 @@ class AppointmentService:
 
         return result
 
-    async def get_client_appointments(self, client_id: str) -> List[Dict[str, Any]]:
+    async def get_client_appointments(self, client_id: str) -> list[dict[str, Any]]:
         """Get all appointments for a client"""
         return await self.appointment_repo.find_by_client(client_id)
 
     async def get_client_active_appointments(
         self, client_id: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get active (booked) appointments for a client"""
         return await self.appointment_repo.find_active(client_id)
 
-    async def get_barber_appointments(self, barber_id: str) -> List[Dict[str, Any]]:
+    async def get_barber_appointments(self, barber_id: str) -> list[dict[str, Any]]:
         """Get all appointments for a barber"""
         return await self.appointment_repo.find_by_barber(barber_id)
 
     async def get_barber_appointments_for_date(
         self, barber_id: str, date_obj: date
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get appointments for a barber on a specific date"""
         return await self.appointment_repo.find_by_barber_and_date(barber_id, date_obj)
 
     async def get_appointment_by_time_slot(
         self, time_slot_id: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Get appointment by time slot ID"""
         return await self.appointment_repo.find_by_time_slot(time_slot_id)
 
-    async def find_reminders_needed(self, date_obj: date) -> List[Dict[str, Any]]:
+    async def find_reminders_needed(self, date_obj: date) -> list[dict[str, Any]]:
         """Find appointments that need reminders sent today"""
         return await self.appointment_repo.find_reminders_needed(date_obj)
 
@@ -203,36 +205,35 @@ class AppointmentService:
             db = self.appointment_repo.db
 
             # Start transaction session for atomic operation
-            async with await mongo_client.start_session() as session:
-                async with session.start_transaction():
-                    # Atomically check and award bonus within transaction
-                    # Count completed appointments created BEFORE this one
-                    completed_count = await db.appointments.count_documents(
+            async with await mongo_client.start_session() as session, session.start_transaction():
+                # Atomically check and award bonus within transaction
+                # Count completed appointments created BEFORE this one
+                completed_count = await db.appointments.count_documents(
+                    {
+                        "client_id": ObjectId(client_id),
+                        "status": AppointmentStatus.COMPLETED.value,
+                        "created_at": {"$lt": appointment.get("created_at")},
+                    },
+                    session=session,
+                )
+
+                # If this is the first completion, award bonus atomically
+                if completed_count == 0:
+                    # Update referrer's bonus balance atomically
+                    update_result = await db.users.update_one(
+                        {"_id": ObjectId(referrer_id)},
                         {
-                            "client_id": ObjectId(client_id),
-                            "status": AppointmentStatus.COMPLETED.value,
-                            "created_at": {"$lt": appointment.get("created_at")},
+                            "$inc": {"bonus_balance": bonus_points},
+                            "$set": {"updated_at": datetime.utcnow()},
                         },
                         session=session,
                     )
 
-                    # If this is the first completion, award bonus atomically
-                    if completed_count == 0:
-                        # Update referrer's bonus balance atomically
-                        update_result = await db.users.update_one(
-                            {"_id": ObjectId(referrer_id)},
-                            {
-                                "$inc": {"bonus_balance": bonus_points},
-                                "$set": {"updated_at": datetime.utcnow()},
-                            },
-                            session=session,
+                    if update_result.modified_count > 0:
+                        logger.info(
+                            f"Awarded {bonus_points} bonus points to {referrer_id} "
+                            f"for first referral completion (appointment {appointment_id})"
                         )
-
-                        if update_result.modified_count > 0:
-                            logger.info(
-                                f"Awarded {bonus_points} bonus points to {referrer_id} "
-                                f"for first referral completion (appointment {appointment_id})"
-                            )
 
             return True
         except Exception as e:

@@ -1,7 +1,8 @@
-from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
+
 from bson import ObjectId
+from pydantic import BaseModel, Field
+
 from src.enums import NotificationType
 from src.models.base import PyObjectId
 
@@ -11,8 +12,8 @@ class NotificationCreate(BaseModel):
     type: NotificationType
     title: str
     message: str
-    related_appointment_id: Optional[str] = None
-    related_schedule_id: Optional[str] = None
+    related_appointment_id: str | None = None
+    related_schedule_id: str | None = None
 
 
 class NotificationRead(BaseModel):
@@ -21,11 +22,11 @@ class NotificationRead(BaseModel):
     type: NotificationType
     title: str
     message: str
-    related_appointment_id: Optional[PyObjectId] = None
-    related_schedule_id: Optional[PyObjectId] = None
+    related_appointment_id: PyObjectId | None = None
+    related_schedule_id: PyObjectId | None = None
     is_sent: bool = False
-    sent_at: Optional[datetime] = None
-    sent_method: Optional[str] = None
+    sent_at: datetime | None = None
+    sent_method: str | None = None
     created_at: datetime
 
     class Config:
@@ -41,4 +42,4 @@ class ReminderJobCreate(BaseModel):
 
 class ReminderJobUpdate(BaseModel):
     status: str
-    error_message: Optional[str] = None
+    error_message: str | None = None

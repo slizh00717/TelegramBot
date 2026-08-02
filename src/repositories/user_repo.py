@@ -1,9 +1,10 @@
-from typing import List, Dict, Any, Optional
-from datetime import datetime
-from src.repositories.base import BaseRepository
-from src.enums import UserRole
-import string
 import random
+import string
+from datetime import datetime
+from typing import Any
+
+from src.enums import UserRole
+from src.repositories.base import BaseRepository
 
 
 class UserRepository(BaseRepository):
@@ -32,10 +33,10 @@ class UserRepository(BaseRepository):
         telegram_id: int,
         full_name: str,
         role: UserRole,
-        phone: Optional[str] = None,
-        username: Optional[str] = None,
-        referral_code: Optional[str] = None,
-        referred_by: Optional[str] = None,
+        phone: str | None = None,
+        username: str | None = None,
+        referral_code: str | None = None,
+        referred_by: str | None = None,
     ) -> str:
         """Create a new user with default values.
 
@@ -74,7 +75,7 @@ class UserRepository(BaseRepository):
         }
         return await self.create(user_data)
 
-    async def find_by_telegram_id(self, telegram_id: int) -> Optional[Dict[str, Any]]:
+    async def find_by_telegram_id(self, telegram_id: int) -> dict[str, Any] | None:
         """Find user by Telegram ID.
 
         Args:
@@ -85,7 +86,7 @@ class UserRepository(BaseRepository):
         """
         return await self.find_one({"telegram_id": telegram_id})
 
-    async def find_by_phone(self, phone: str) -> Optional[Dict[str, Any]]:
+    async def find_by_phone(self, phone: str) -> dict[str, Any] | None:
         """Find user by phone number.
 
         Args:
@@ -96,7 +97,7 @@ class UserRepository(BaseRepository):
         """
         return await self.find_one({"phone": phone})
 
-    async def find_all_clients(self) -> List[Dict[str, Any]]:
+    async def find_all_clients(self) -> list[dict[str, Any]]:
         """Find all client users.
 
         Returns:
@@ -104,7 +105,7 @@ class UserRepository(BaseRepository):
         """
         return await self.find_many({"role": UserRole.CLIENT.value})
 
-    async def find_all_subscribed(self) -> List[Dict[str, Any]]:
+    async def find_all_subscribed(self) -> list[dict[str, Any]]:
         """Find all users subscribed to notifications.
 
         Note: This loads ALL subscribed users into memory. For large datasets,
@@ -115,7 +116,7 @@ class UserRepository(BaseRepository):
         """
         return await self.find_many({"is_subscribed": True})
 
-    async def find_barbers(self) -> List[Dict[str, Any]]:
+    async def find_barbers(self) -> list[dict[str, Any]]:
         """Find all barber users.
 
         Returns:
@@ -123,7 +124,7 @@ class UserRepository(BaseRepository):
         """
         return await self.find_many({"role": UserRole.BARBER.value})
 
-    async def update_user(self, telegram_id: int, data: Dict[str, Any]) -> bool:
+    async def update_user(self, telegram_id: int, data: dict[str, Any]) -> bool:
         """Update user by telegram_id"""
         user = await self.find_by_telegram_id(telegram_id)
         if not user:
@@ -161,7 +162,7 @@ class UserRepository(BaseRepository):
         return await self.update(user_id, {"is_blocked": False})
 
     async def update_barber_services(
-        self, user_id: str, services: Dict[str, float]
+        self, user_id: str, services: dict[str, float]
     ) -> bool:
         """Update barber services and prices with updated_at timestamp"""
         user = await self.find_by_id(user_id)
@@ -198,7 +199,7 @@ class UserRepository(BaseRepository):
 
     async def find_by_referral_code(
         self, referral_code: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Find user by referral code"""
         return await self.find_one({"referral_code": referral_code})
 
@@ -214,7 +215,7 @@ class UserRepository(BaseRepository):
         )
         return True
 
-    async def get_referrals(self, user_id: str) -> List[Dict[str, Any]]:
+    async def get_referrals(self, user_id: str) -> list[dict[str, Any]]:
         """Get all referrals for a user"""
         return await self.find_many({"referred_by": user_id})
 

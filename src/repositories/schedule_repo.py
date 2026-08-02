@@ -1,6 +1,8 @@
-from typing import List, Dict, Any, Optional
-from datetime import datetime, date
+from datetime import date, datetime
+from typing import Any
+
 from bson import ObjectId
+
 from src.repositories.base import BaseRepository
 
 
@@ -50,7 +52,7 @@ class ScheduleRepository(BaseRepository):
 
     async def find_by_barber_and_date(
         self, barber_id: str, date_obj: date
-    ) -> Optional[Dict[str, Any]]:
+    ) -> dict[str, Any] | None:
         """Find schedule by barber and date"""
         # Convert date to datetime range query
         date_start = datetime.combine(date_obj, datetime.min.time())
@@ -65,15 +67,15 @@ class ScheduleRepository(BaseRepository):
 
     async def find_by_barber(
         self, barber_id: str, limit: int = 30
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Find all schedules for a barber"""
         return await self.find_many({"barber_id": ObjectId(barber_id)}, limit=limit)
 
-    async def find_unpublished(self) -> List[Dict[str, Any]]:
+    async def find_unpublished(self) -> list[dict[str, Any]]:
         """Find all unpublished schedules"""
         return await self.find_many({"is_published": False})
 
-    async def find_published(self) -> List[Dict[str, Any]]:
+    async def find_published(self) -> list[dict[str, Any]]:
         """Find all published schedules"""
         return await self.find_many({"is_published": True})
 
@@ -85,7 +87,7 @@ class ScheduleRepository(BaseRepository):
 
     async def find_schedules_after_date(
         self, barber_id: str, date_obj: date
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Find schedules after a specific date for a barber"""
         # Convert date to datetime
         date_dt = datetime.combine(date_obj, datetime.min.time())

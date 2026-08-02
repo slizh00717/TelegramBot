@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
-from datetime import datetime, date, time
-from typing import Optional, Literal
+from datetime import date, datetime, time
+from typing import Literal
+
 from bson import ObjectId
+from pydantic import BaseModel, Field
+
 from src.enums import AppointmentStatus
 from src.models.base import PyObjectId
 
@@ -18,8 +20,8 @@ class AppointmentCreate(BaseModel):
 
 
 class AppointmentUpdate(BaseModel):
-    status: Optional[AppointmentStatus] = None
-    notes: Optional[str] = None
+    status: AppointmentStatus | None = None
+    notes: str | None = None
 
 
 class AppointmentCancel(BaseModel):
@@ -36,14 +38,14 @@ class AppointmentRead(BaseModel):
     client_name: str
     status: AppointmentStatus
     service_type: str = "haircut"
-    cancelled_by: Optional[Literal["CLIENT", "BARBER"]] = None
-    cancelled_at: Optional[datetime] = None
-    cancel_reason: Optional[str] = None
+    cancelled_by: Literal["CLIENT", "BARBER"] | None = None
+    cancelled_at: datetime | None = None
+    cancel_reason: str | None = None
     appointment_date: date
     appointment_time: time
-    notes: Optional[str] = None
+    notes: str | None = None
     reminder_sent: bool = False
-    reminder_sent_at: Optional[datetime] = None
+    reminder_sent_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

@@ -1,36 +1,35 @@
-from aiogram import Router, F
-from aiogram.types import (
-    CallbackQuery,
-    Message,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-)
+from datetime import datetime, time, timedelta
+
+import pytz
+from aiogram import F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from datetime import datetime, date, time, timedelta
-import pytz
-from src.services import (
-    ScheduleService,
-    AppointmentService,
-    UserService,
-    NotificationService,
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
 )
-from src.config import settings
-from src.utils import (
-    logger,
-    require_role,
-    get_today,
-    get_timezone,
-    validate_name,
-    validate_phone,
-    safe_edit_text,
-)
-from src.enums import UserRole, NotificationType
+
+from src.enums import NotificationType, UserRole
 from src.repositories import (
     ScheduleRepository,
-    TimeSlotRepository,
     UserRepository,
-    AppointmentRepository,
+)
+from src.services import (
+    AppointmentService,
+    NotificationService,
+    ScheduleService,
+    UserService,
+)
+from src.utils import (
+    get_timezone,
+    get_today,
+    logger,
+    require_role,
+    safe_edit_text,
+    validate_name,
+    validate_phone,
 )
 
 router = Router()
@@ -608,7 +607,7 @@ async def view_barber_appointments(callback: CallbackQuery):
                         callback_data=f"barber_complete_appt_{appt['_id']}",
                     ),
                     InlineKeyboardButton(
-                        text=f"❌ Отменить",
+                        text="❌ Отменить",
                         callback_data=f"barber_cancel_appt_{appt['_id']}",
                     ),
                 ]
@@ -674,7 +673,7 @@ async def barber_add_appointment_handler(callback: CallbackQuery):
         ]
     )
 
-    text = f"👥 <b>Выбери клиента для записи</b>\n\n"
+    text = "👥 <b>Выбери клиента для записи</b>\n\n"
     text += f"Всего клиентов: <b>{len(clients)}</b>\n\n"
     text += "Нажми на клиента для записи:"
 
@@ -818,7 +817,6 @@ async def barber_select_date_handler(callback: CallbackQuery, state: FSMContext)
 
     data = await state.get_data()
     client_id = data.get("selected_client_id")
-    client_name = data.get("selected_client_name")
 
     if not client_id:
         keyboard = InlineKeyboardMarkup(
@@ -1068,7 +1066,6 @@ async def barber_book_service_handler(callback: CallbackQuery, state: FSMContext
     data = await state.get_data()
     slot_id = data.get("selected_slot_id")
     client_id = data.get("selected_client_id")
-    client_name = data.get("selected_client_name")
 
     if not slot_id or not client_id:
         await callback.answer("❌ Ошибка: данные не найдены", show_alert=True)
@@ -1187,7 +1184,7 @@ async def barber_complete_appointment_handler(callback: CallbackQuery):
 
         bonus_message = ""
         if client and client.get("referred_by"):
-            bonus_message = f"\n\n💰 Бонус начислен рефереру!"
+            bonus_message = "\n\n💰 Бонус начислен рефереру!"
 
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
@@ -1838,7 +1835,7 @@ async def barber_view_clients(callback: CallbackQuery):
         [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")]
     )
 
-    text = f"👥 <b>Мои клиенты</b>\n\n"
+    text = "👥 <b>Мои клиенты</b>\n\n"
     text += f"Активных клиентов: <b>{len(clients)}</b>\n\n"
     text += "Выбери клиента для просмотра информации:"
 
@@ -1893,7 +1890,7 @@ async def barber_view_blacklist(callback: CallbackQuery):
         [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu")]
     )
 
-    text = f"🚫 <b>Чёрный список</b>\n\n"
+    text = "🚫 <b>Чёрный список</b>\n\n"
     text += f"Заблокировано клиентов: <b>{len(blocked_clients)}</b>\n\n"
     text += "Выбери клиента для разблокировки:"
 

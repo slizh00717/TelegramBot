@@ -1,8 +1,10 @@
-from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from abc import ABC
+from typing import Any
+
 from bson import ObjectId
 from bson.errors import InvalidId
+from motor.motor_asyncio import AsyncIOMotorDatabase
+
 from src.database import get_database
 
 
@@ -19,7 +21,7 @@ class BaseRepository(ABC):
     """
 
     def __init__(
-        self, collection_name: str, db: Optional[AsyncIOMotorDatabase] = None
+        self, collection_name: str, db: AsyncIOMotorDatabase | None = None
     ) -> None:
         """Initialize repository with collection name.
 
@@ -48,7 +50,7 @@ class BaseRepository(ABC):
         except InvalidId:
             raise ValueError(f"Invalid ObjectId format: {id}")
 
-    async def create(self, data: Dict[str, Any]) -> str:
+    async def create(self, data: dict[str, Any]) -> str:
         """Create a new document in the collection.
 
         Args:
@@ -63,7 +65,7 @@ class BaseRepository(ABC):
         result = await self.collection.insert_one(data)
         return str(result.inserted_id)
 
-    async def find_by_id(self, id: str) -> Optional[Dict[str, Any]]:
+    async def find_by_id(self, id: str) -> dict[str, Any] | None:
         """Find document by MongoDB ObjectId.
 
         Args:
@@ -82,8 +84,8 @@ class BaseRepository(ABC):
             raise ValueError(f"Cannot find document: {str(e)}")
 
     async def find_many(
-        self, query: Dict[str, Any], limit: Optional[int] = None, skip: int = 0
-    ) -> List[Dict[str, Any]]:
+        self, query: dict[str, Any], limit: int | None = None, skip: int = 0
+    ) -> list[dict[str, Any]]:
         """Find multiple documents matching query.
 
         Args:
@@ -101,7 +103,7 @@ class BaseRepository(ABC):
         else:
             return await cursor.to_list(length=None)
 
-    async def find_one(self, query: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def find_one(self, query: dict[str, Any]) -> dict[str, Any] | None:
         """Find first document matching query.
 
         Args:
@@ -112,7 +114,7 @@ class BaseRepository(ABC):
         """
         return await self.collection.find_one(query)
 
-    async def update(self, id: str, data: Dict[str, Any]) -> bool:
+    async def update(self, id: str, data: dict[str, Any]) -> bool:
         """Update document by ID with provided data.
 
         Args:
@@ -134,7 +136,7 @@ class BaseRepository(ABC):
         except ValueError as e:
             raise ValueError(f"Cannot update document: {str(e)}")
 
-    async def update_many(self, query: Dict[str, Any], data: Dict[str, Any]) -> int:
+    async def update_many(self, query: dict[str, Any], data: dict[str, Any]) -> int:
         """Update multiple documents matching query.
 
         Args:
@@ -166,7 +168,7 @@ class BaseRepository(ABC):
         except ValueError as e:
             raise ValueError(f"Cannot delete document: {str(e)}")
 
-    async def delete_many(self, query: Dict[str, Any]) -> int:
+    async def delete_many(self, query: dict[str, Any]) -> int:
         """Delete multiple documents matching query.
 
         Args:
@@ -178,7 +180,7 @@ class BaseRepository(ABC):
         result = await self.collection.delete_many(query)
         return result.deleted_count
 
-    async def count(self, query: Optional[Dict[str, Any]] = None) -> int:
+    async def count(self, query: dict[str, Any] | None = None) -> int:
         """Count documents matching query.
 
         Args:
@@ -191,7 +193,7 @@ class BaseRepository(ABC):
             query = {}
         return await self.collection.count_documents(query)
 
-    async def exists(self, query: Dict[str, Any]) -> bool:
+    async def exists(self, query: dict[str, Any]) -> bool:
         """Check if any document exists matching query.
 
         Args:

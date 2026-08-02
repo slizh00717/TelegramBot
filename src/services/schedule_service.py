@@ -1,9 +1,8 @@
-from datetime import datetime, date, time, timedelta
-from typing import List, Dict, Any
-from bson import ObjectId
+from datetime import date, datetime, time, timedelta
+from typing import Any
+
 from src.repositories import ScheduleRepository, TimeSlotRepository
 from src.utils import get_timezone, logger
-import pytz
 
 
 class ScheduleService:
@@ -20,7 +19,7 @@ class ScheduleService:
         haircut_duration_minutes: int = 60,
         beard_trim_duration_minutes: int = 30,
         haircut_and_beard_duration_minutes: int = 90,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a new schedule (slots generated on-the-fly during booking).
 
@@ -93,13 +92,13 @@ class ScheduleService:
             logger.info(f"Published schedule {schedule_id}")
         return result
 
-    async def get_barber_schedules(self, barber_id: str) -> List[Dict[str, Any]]:
+    async def get_barber_schedules(self, barber_id: str) -> list[dict[str, Any]]:
         """Get all schedules for a barber"""
         return await self.schedule_repo.find_by_barber(barber_id)
 
     async def get_available_slots_for_service(
         self, barber_id: str, date_obj: date, service_type: str = "haircut"
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get available time slots for a specific service type and date"""
         from src.repositories import AppointmentRepository
 
@@ -235,7 +234,7 @@ class ScheduleService:
 
     async def get_available_slots_for_barber(
         self, barber_id: str, date_obj: date
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get available time slots for a barber on a specific date (for barber view)"""
         return await self.time_slot_repo.find_available_for_date(barber_id, date_obj)
 

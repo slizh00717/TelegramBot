@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class TimeSlotStatus(str, Enum):
+class TimeSlotStatus(StrEnum):
     AVAILABLE = "available"
     BOOKED = "booked"
     LOCKED = "locked"

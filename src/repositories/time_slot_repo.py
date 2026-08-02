@@ -1,8 +1,10 @@
-from typing import List, Dict, Any, Optional
 from datetime import datetime
+from typing import Any
+
 from bson import ObjectId
-from src.repositories.base import BaseRepository
+
 from src.enums import TimeSlotStatus
+from src.repositories.base import BaseRepository
 
 
 class TimeSlotRepository(BaseRepository):
@@ -24,11 +26,11 @@ class TimeSlotRepository(BaseRepository):
         }
         return await self.create(slot_data)
 
-    async def find_by_schedule(self, schedule_id: str) -> List[Dict[str, Any]]:
+    async def find_by_schedule(self, schedule_id: str) -> list[dict[str, Any]]:
         """Find all time slots for a schedule"""
         return await self.find_many({"schedule_id": ObjectId(schedule_id)})
 
-    async def find_available_for_barber(self, barber_id: str) -> List[Dict[str, Any]]:
+    async def find_available_for_barber(self, barber_id: str) -> list[dict[str, Any]]:
         """Find all available slots for a barber"""
         return await self.find_many(
             {"barber_id": ObjectId(barber_id), "status": TimeSlotStatus.AVAILABLE.value}
@@ -36,7 +38,7 @@ class TimeSlotRepository(BaseRepository):
 
     async def find_available_for_date(
         self, barber_id: str, date_obj
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Find available slots for a specific date"""
         from datetime import date as date_type
 
@@ -69,7 +71,7 @@ class TimeSlotRepository(BaseRepository):
             {"status": TimeSlotStatus.AVAILABLE.value, "updated_at": datetime.utcnow()},
         )
 
-    async def find_by_id_typed(self, slot_id: str) -> Optional[Dict[str, Any]]:
+    async def find_by_id_typed(self, slot_id: str) -> dict[str, Any] | None:
         """Find slot by ID"""
         return await self.find_by_id(slot_id)
 

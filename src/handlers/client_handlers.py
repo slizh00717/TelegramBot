@@ -1,33 +1,35 @@
-from aiogram import Router, F
-from aiogram.types import (
-    CallbackQuery,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-    Message,
-)
+from datetime import datetime
+
+import pytz
+from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from datetime import datetime, timedelta
-import pytz
+from aiogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Message,
+)
+
+from src.config import settings
+from src.enums import AppointmentStatus, NotificationType, UserRole
+from src.repositories import ScheduleRepository
 from src.services import (
     AppointmentService,
+    NotificationService,
     ScheduleService,
     UserService,
-    NotificationService,
 )
-from src.config import settings
 from src.utils import (
+    get_timezone,
+    get_today,
     logger,
     require_role,
-    get_today,
-    get_timezone,
+    safe_edit_text,
     validate_name,
     validate_phone,
-    safe_edit_text,
 )
-from src.enums import UserRole, AppointmentStatus, NotificationType
-from src.repositories import ScheduleRepository, TimeSlotRepository
 
 router = Router()
 appointment_service = AppointmentService()
@@ -564,17 +566,17 @@ async def client_view_price(callback: CallbackQuery):
             if haircut is not None:
                 price_text += f"✂️ Стрижка: {haircut} BYN\n"
             else:
-                price_text += f"✂️ Стрижка: не установлена\n"
+                price_text += "✂️ Стрижка: не установлена\n"
 
             if beard_trim is not None:
                 price_text += f"💈 Стрижка бороды: {beard_trim} BYN\n"
             else:
-                price_text += f"💈 Стрижка бороды: не установлена\n"
+                price_text += "💈 Стрижка бороды: не установлена\n"
 
             if haircut_and_beard is not None:
                 price_text += f"✂️💈 Стрижка + Борода: {haircut_and_beard} BYN\n"
             else:
-                price_text += f"✂️💈 Стрижка + Борода: не установлена\n"
+                price_text += "✂️💈 Стрижка + Борода: не установлена\n"
 
             # Show updated_at if available (converted to local timezone)
             updated_at = services.get("updated_at")

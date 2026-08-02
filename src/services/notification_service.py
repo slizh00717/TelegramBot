@@ -1,14 +1,13 @@
-from typing import Optional, Dict, Any, List
 from aiogram import Bot
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from src.repositories import NotificationRepository, UserRepository
+from aiogram.types import InlineKeyboardMarkup
+
 from src.enums import NotificationType
-from src.config import settings
+from src.repositories import NotificationRepository, UserRepository
 from src.utils import logger
 
 
 class NotificationService:
-    def __init__(self, bot: Optional[Bot] = None):
+    def __init__(self, bot: Bot | None = None):
         self.notification_repo = NotificationRepository()
         self.user_repo = UserRepository()
         self.bot = bot
@@ -17,7 +16,7 @@ class NotificationService:
         self,
         chat_id: int,
         message_text: str,
-        reply_markup: Optional[InlineKeyboardMarkup] = None,
+        reply_markup: InlineKeyboardMarkup | None = None,
     ) -> bool:
         """Send a message via Telegram"""
         if not self.bot:
@@ -40,8 +39,8 @@ class NotificationService:
         notification_type: NotificationType,
         title: str,
         message: str,
-        related_appointment_id: Optional[str] = None,
-        related_schedule_id: Optional[str] = None,
+        related_appointment_id: str | None = None,
+        related_schedule_id: str | None = None,
     ) -> str:
         """Create a notification record"""
         notification_id = await self.notification_repo.create_notification(
@@ -60,9 +59,9 @@ class NotificationService:
         notification_type: NotificationType,
         title: str,
         message: str,
-        related_appointment_id: Optional[str] = None,
-        related_schedule_id: Optional[str] = None,
-        reply_markup: Optional[InlineKeyboardMarkup] = None,
+        related_appointment_id: str | None = None,
+        related_schedule_id: str | None = None,
+        reply_markup: InlineKeyboardMarkup | None = None,
     ) -> bool:
         """Create notification and send it to user"""
         # Get user
@@ -101,8 +100,8 @@ class NotificationService:
         notification_type: NotificationType,
         title: str,
         message: str,
-        exclude_user_id: Optional[str] = None,
-        reply_markup: Optional[InlineKeyboardMarkup] = None,
+        exclude_user_id: str | None = None,
+        reply_markup: InlineKeyboardMarkup | None = None,
         batch_size: int = 100,
     ) -> int:
         """Send notification to all subscribed clients.
@@ -213,8 +212,8 @@ class NotificationService:
         self,
         client_id: str,
         appointment_time: str,
-        appointment_date: Optional[str] = None,
-        barber_address: Optional[str] = None,
+        appointment_date: str | None = None,
+        barber_address: str | None = None,
     ) -> bool:
         """Send reminder notification to client"""
         message = "<b>⏰ Напоминание о вашей записи</b>\n\n"
@@ -227,7 +226,7 @@ class NotificationService:
         if barber_address:
             message += f"📍 Адрес: {barber_address}\n"
 
-        message += f"\nДо встречи! ✂️"
+        message += "\nДо встречи! ✂️"
 
         return await self.notify_user(
             user_id=client_id,

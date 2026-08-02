@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class NotificationType(str, Enum):
+class NotificationType(StrEnum):
     SCHEDULE_PUBLISHED = "schedule_published"
     APPOINTMENT_BOOKED = "appointment_booked"
     APPOINTMENT_CANCELLED = "appointment_cancelled"

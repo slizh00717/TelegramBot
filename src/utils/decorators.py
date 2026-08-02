@@ -1,9 +1,11 @@
+import logging
+from collections.abc import Callable
 from functools import wraps
-from typing import Callable
-from aiogram.types import Message, CallbackQuery
+
+from aiogram.types import CallbackQuery, Message
+
 from src.enums import UserRole
 from src.repositories.user_repo import UserRepository
-import logging
 
 logger = logging.getLogger(__name__)
 
